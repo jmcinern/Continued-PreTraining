@@ -13,5 +13,5 @@
 module load python3/3.10.5/gcc-9.3.0 # availible python
 source /mnt/scratch2/users/40460549/cpt-dail/myenv_new/bin/activate
 cd $SLURM_SUBMIT_DIR                     # ensure we’re in the project dir
-srun python eval_CPT_irish.py
+srun python mini_CPT.py #eval_CPT_irish.py
                # run your script
