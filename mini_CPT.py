@@ -31,8 +31,10 @@ with open("./data/first_1000_words.txt", "w", encoding="utf-8") as f:
 # load in smallest qwen model, practice caching
 cache_path = "./cache/qwen3-0.6b"
 model_name = "Qwen/Qwen3-0.6B" 
-tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_path)
-
+tokenizer = AutoTokenizer.from_pretrained(model_name, 
+                                          cache_dir=cache_path, 
+                                          trust_remote_code=True, #  custom qwen3 code for loading)
+)
 # tokenize the full texts
 # have to break into chunks as model has a max length
 nce_raw_chunks = nce_1M_words.split("\n")
