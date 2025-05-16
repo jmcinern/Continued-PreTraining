@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=mini_qwen_test           # job name
-#SBATCH --output=hello_slurm_%j.out      # STDOUT → hello_slurm_<jobid>.out
-#SBATCH --error=hello_slurm_%j.err       # STDERR → hello_slurm_<jobid>.err
+#SBATCH --output=qwen_mini_cpt_%j.out      # STDOUT → hello_slurm_<jobid>.out
+#SBATCH --error=qwen_mini_cpt_%j.err       # STDERR → hello_slurm_<jobid>.err
 #SBATCH --time=02:00:00                  # time
 #SBATCH --partition=k2-gpu-v100            # partition
 #SBATCH --gres=gpu:1
