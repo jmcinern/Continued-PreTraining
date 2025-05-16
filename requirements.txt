@@ -1,0 +1,6 @@
+chromadb
+transformers
+datasets
+tqdm
+pickle
+accelerate
