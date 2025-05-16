@@ -7,7 +7,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks=1                       # single‐process job
 #SBATCH --cpus-per-task=4                # one CPU
-#SBATCH --mem-per-cpu=16G                 # 1 GB RAM
+#SBATCH --mem=16G                 # 1 GB RAM
 #SBATCH --mail-type=ALL       # email on start, end, or fail
 #SBATCH --mail-user=josephmcinerney7575@gmail.com 
 module load python3/3.10.5/gcc-9.3.0 # availible python
