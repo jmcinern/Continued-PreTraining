@@ -4,7 +4,7 @@
 #SBATCH --error=hello_slurm_%j.err       # STDERR → hello_slurm_<jobid>.err
 #SBATCH --time=02:00:00                  # time
 #SBATCH --partition=k2-lowpri             # partition
-#SBATCH --gres=gpu:v100:1
+#SBATCH --gres=gpu:1
 #SBATCH --ntasks=1                       # single‐process job
 #SBATCH --cpus-per-task=4                # one CPU
 #SBATCH --mem-per-cpu=16G                 # 1 GB RAM
