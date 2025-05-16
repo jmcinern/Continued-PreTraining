@@ -10,14 +10,14 @@ import os
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
     nec_text = f.read()
     nce_text_words = nec_text.split()
-    nce_1M_words = nce_text_words[:10000]  # take first 1M words
+    nce_1M_words = nce_text_words[:1000000]  # take first 1M words
     nce_1M_words = " ".join(nce_1M_words)
 
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
     dail_text = f.read()
     dail_text_words = dail_text.split()
-    dail_1M_words = dail_text_words[:10000]  # take first 1M words
+    dail_1M_words = dail_text_words[:1000000]  # take first 1M words
     dail_1M_words = " ".join(dail_1M_words)
 
 '''
