@@ -22,5 +22,5 @@ with torch.no_grad():
 generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 # Save to file
-with open("irish_politics_story.txt", "w", encoding="utf-8") as f:
+with open("cpt_irish_politics_story.txt", "w", encoding="utf-8") as f:
     f.write(generated_text)
