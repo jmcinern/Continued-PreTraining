@@ -84,7 +84,7 @@ print(len(mixed_dataset))
 print(len(mixed_dataset[0]["input_ids"]))
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
-    torch_dtype="auto",
+    torch_dtype="float16",
     device_map="auto", 
     cache_dir=cache_path,
     trust_remote_code=True, #  custom qwen3 code for loading
