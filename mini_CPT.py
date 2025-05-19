@@ -8,17 +8,33 @@ import os
 
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
-    nec_text = f.read()
-    nce_text_words = nec_text.split()
-    nce_1M_words = nce_text_words[:1000000]  # take first 1M words
-    nce_1M_words = " ".join(nce_1M_words)
+    nce_lines = f.readlines()
+    
 
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
-    dail_text = f.read()
-    dail_text_words = dail_text.split()
-    dail_1M_words = dail_text_words[:1000000]  # take first 1M words
-    dail_1M_words = " ".join(dail_1M_words)
+    dail_lines = f.readlines()
+
+# create helper to limit word count for experimentation
+def limit_words(lines, max_words):
+    word_count = 0
+    limited = []
+    for line in lines:
+        words = line.split()
+        if word_count + len(words) > max_words:
+            remaining = max_words - word_count
+            limited.append(" ".join(words[:remaining]))
+            break
+        else:
+            limited.append(line)
+            word_count += len(words)
+    return limited
+
+nce_lines = limit_words(nce_lines, 1_000_000)
+dail_lines = limit_words(dail_lines, 1_000_000)
+
+
+    
 
 '''
 with open("./data/first_1000_words.txt", "w", encoding="utf-8") as f:
@@ -35,16 +51,10 @@ tokenizer = AutoTokenizer.from_pretrained(model_name,
                                           cache_dir=cache_path, 
                                           trust_remote_code=True, #  custom qwen3 code for loading)
 )
-# tokenize the full texts
-# have to break into chunks as model has a max length
-nce_raw_chunks = nce_1M_words.split("\n")
-dail_raw_chunks = dail_1M_words.split("\n")
-print(f"nce_raw_chunks: {len(nce_raw_chunks)}")
-print(f"dail_raw_chunks: {len(dail_raw_chunks)}")
 
 # create a dataset from the chunks
-nce_dataset = Dataset.from_dict({"text": nce_raw_chunks})
-dail_dataset = Dataset.from_dict({"text": dail_raw_chunks})
+nce_dataset = Dataset.from_dict({"text": nce_lines})
+dail_dataset = Dataset.from_dict({"text": dail_lines})
 
 # simple helper function to tokenize the dataset
 def tokenize_function(raw_chunk):
