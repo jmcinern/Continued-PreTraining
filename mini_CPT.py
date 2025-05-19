@@ -33,6 +33,9 @@ def limit_words(lines, max_words):
 nce_lines = limit_words(nce_lines, 1_000_000)
 dail_lines = limit_words(dail_lines, 1_000_000)
 
+print(f"nce_lines: {len(nce_lines)}")
+print(f"dail_lines: {len(dail_lines)}")
+
 
     
 
