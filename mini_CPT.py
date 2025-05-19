@@ -79,6 +79,9 @@ mixed_dataset = concatenate_datasets([
     dail_dataset_2048_chunks
 ]).shuffle(seed=42)
 # now load base model
+
+print(len(mixed_dataset))
+print(len(mixed_dataset[0]["input_ids"]))
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     torch_dtype="auto",
