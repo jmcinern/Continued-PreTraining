@@ -23,12 +23,12 @@ def limit_words(lines, max_words):
         words = line.split()
         if word_count + len(words) > max_words:
             remaining = max_words - word_count
-            limited.append(" ".join(words[:remaining]))
+            limited.append(words[:remaining])
             break
         else:
-            limited.append(line)
+            limited.append(words)
             word_count += len(words)
-    return limited
+    return [" ".join(words) for words in limited]
 
 nce_lines = limit_words(nce_lines, 1_000_000)
 dail_lines = limit_words(dail_lines, 1_000_000)
