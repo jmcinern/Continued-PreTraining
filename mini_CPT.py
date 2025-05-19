@@ -58,11 +58,15 @@ block_size = 2048 # training example size
 
 # turns batch into chunks of block_size
 def group_texts(examples):
+    # convert list of lists into a single list
     concatenated = sum(examples["input_ids"], [])
+    # calculate max number of tokens given block size.
     total = len(concatenated) // block_size * block_size
-    input_ids = [concatenated[i:i+block_size] for i in range(0, total, block_size)]
-    return {"input_ids": input_ids}
-
+    # cut up list by block size
+    input_chunks = [concatenated[i:i+block_size] for i in range(0, total, block_size)]
+    # need to have labels for the dataset batching 
+    return [{"input_ids": chunk, "labels": chunk} for chunk in input_chunks]
+ 
 # apply the function to the tokenized dataset
 nce_dataset_2048_chunks = nce_tokenized_dataset.map(group_texts, 
                                                     batched=True, 
