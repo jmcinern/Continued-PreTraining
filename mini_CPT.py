@@ -29,8 +29,8 @@ with open("./data/first_1000_words.txt", "w", encoding="utf-8") as f:
 
 # TOKENIZATION
 # load in smallest qwen model, practice caching
-cache_path = "./cache/qwen3-3b"
-model_name = "Qwen/Qwen3-3B" 
+cache_path = "./cache/qwen3-4b"
+model_name = "Qwen/Qwen3-4B" 
 tokenizer = AutoTokenizer.from_pretrained(model_name, 
                                           cache_dir=cache_path, 
                                           trust_remote_code=True, #  custom qwen3 code for loading)
@@ -124,4 +124,4 @@ trainer = Trainer(
 # train the model
 trainer.train()
 # save the model
-trainer.save_model("./checkpoints/qwen3-3b-CPT_dáil_and_ga")
+trainer.save_model("./checkpoints/qwen3-4b-CPT_dáil_and_ga")
