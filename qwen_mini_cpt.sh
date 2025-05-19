@@ -3,7 +3,7 @@
 #SBATCH --output=qwen_mini_cpt_%j.out
 #SBATCH --error=qwen_mini_cpt_%j.err
 #SBATCH --time=01:00:00
-#SBATCH --partition=k2-gpu-a100
+#SBATCH --partition=k2-gpu-v100   #k2-gpu-a100
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
