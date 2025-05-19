@@ -8,26 +8,20 @@ import os
 
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
-    nce_lines = f.readlines()
+    nce_all_words = f.read()
+    nce_1M = nce_all_words.split()[:1_000_000]
     
-
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
-    dail_lines = f.readlines()
+    dail_all_words = f.read()
+    dail_1M = dail_all_words.split()[:1_000_000]
 
-print(f"nce_lines: {len(nce_lines)}")
-print(f"dail_lines: {len(dail_lines)}")
+# chunk before tokenization
+chunks_nce = [" ".join(nce_1M[i:i+1000])
+          for i in range(0, len(nce_1M), 1000)]
 
-
-    
-
-'''
-with open("./data/first_1000_words.txt", "w", encoding="utf-8") as f:
-    f.write(nce_1M_words[:1000])
-    f.write("\n")
-    f.write(dail_1M_words[:1000])
-'''
-
+chunks_dail = [" ".join(dail_1M[i:i+1000]) 
+          for i in range(0, len(dail_1M), 1000)] 
 # TOKENIZATION
 # load in smallest qwen model, practice caching
 cache_path = "./cache/qwen3-4b"
@@ -37,9 +31,10 @@ tokenizer = AutoTokenizer.from_pretrained(model_name,
                                           trust_remote_code=True, #  custom qwen3 code for loading)
 )
 
-# create a dataset from the chunks
-nce_dataset = Dataset.from_dict({"text": nce_lines})
-dail_dataset = Dataset.from_dict({"text": dail_lines})
+# create a dataset
+nce_dataset = Dataset.from_dict({"text": chunks_nce})
+dail_dataset = Dataset.from_dict({"text": chunks_dail})
+
 
 # simple helper function to tokenize the dataset
 def tokenize_function(raw_chunk):
