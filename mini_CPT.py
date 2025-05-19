@@ -39,6 +39,8 @@ tokenizer = AutoTokenizer.from_pretrained(model_name,
 # have to break into chunks as model has a max length
 nce_raw_chunks = nce_1M_words.split("\n")
 dail_raw_chunks = dail_1M_words.split("\n")
+print(f"nce_raw_chunks: {len(nce_raw_chunks)}")
+print(f"dail_raw_chunks: {len(dail_raw_chunks)}")
 
 # create a dataset from the chunks
 nce_dataset = Dataset.from_dict({"text": nce_raw_chunks})
