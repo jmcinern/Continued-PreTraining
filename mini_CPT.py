@@ -4,6 +4,7 @@
 from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments
 from datasets import Dataset, concatenate_datasets
 import os
+import torch
 # TXT: raw data
 
 # read in raw text (nce_ga)
@@ -84,7 +85,7 @@ print(len(mixed_dataset))
 print(len(mixed_dataset[0]["input_ids"]))
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
-    torch_dtype="float16",
+    torch_dtype=torch.float16, # use float16 if on GPU
     device_map="auto", 
     cache_dir=cache_path,
     trust_remote_code=True, #  custom qwen3 code for loading
@@ -108,7 +109,7 @@ training_args = TrainingArguments(
     logging_steps=100,
     save_total_limit=2,
     prediction_loss_only=True,
-    fp16=True,  # use True if on GPU with float16 support
+    fp16=False,  # have manaually loaded float16 model, mixed precision not needed as 1 bactch.
     bf16=False, # v100 doesnt support
     report_to="none"  # disable wandb/hub
 )
