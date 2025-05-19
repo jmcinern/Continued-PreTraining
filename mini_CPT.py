@@ -18,17 +18,16 @@ with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
 # create helper to limit word count for experimentation
 def limit_words(lines, max_words):
     word_count = 0
-    limited = []
+    lines_limited = []
     for line in lines:
         words = line.split()
         if word_count + len(words) > max_words:
-            remaining = max_words - word_count
-            limited.append(words[:remaining])
             break
         else:
-            limited.append(words)
+            lines_limited.append(words)
             word_count += len(words)
-    return [" ".join(words) for words in limited]
+    return [" ".join(words) for words in lines_limited]
+
 
 nce_lines = limit_words(nce_lines, 1_000_000)
 dail_lines = limit_words(dail_lines, 1_000_000)
