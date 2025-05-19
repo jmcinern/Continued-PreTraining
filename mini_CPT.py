@@ -65,7 +65,8 @@ def group_texts(examples):
     # cut up list by block size
     input_chunks = [concatenated[i:i+block_size] for i in range(0, total, block_size)]
     # need to have labels for the dataset batching 
-    return {"input_ids": input_chunks, "labels": input_chunks}
+    return [{"input_ids": chunk, "labels": chunk} for chunk in input_chunks]
+
  
 # apply the function to the tokenized dataset
 nce_dataset_2048_chunks = nce_tokenized_dataset.map(group_texts, 
