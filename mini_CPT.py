@@ -106,7 +106,7 @@ training_args = TrainingArguments(
     logging_steps=100,
     save_total_limit=2,
     prediction_loss_only=True,
-    fp16=False,  # use True if on GPU with float16 support
+    fp16=True,  # use True if on GPU with float16 support
     report_to="none"  # disable wandb/hub
 )
 
