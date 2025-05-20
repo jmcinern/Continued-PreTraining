@@ -47,7 +47,7 @@ nce_tokenized_dataset = nce_dataset.map(tokenize_function, batched=True, remove_
 dail_tokenized_dataset = dail_dataset.map(tokenize_function, batched=True, remove_columns=["text"])
 
 # now slice up into blocks to feed into the model
-block_size = 2048 # training example size
+block_size = 1024 # training example size
 
 # turns batch into chunks of block_size
 def group_texts(examples):
@@ -62,24 +62,26 @@ def group_texts(examples):
 
  
 # apply the function to the tokenized dataset
-nce_dataset_2048_chunks = nce_tokenized_dataset.map(group_texts, 
+nce_dataset_1024_chunks = nce_tokenized_dataset.map(group_texts, 
                                                     batched=True, 
                                                     # attn padding not important for CPT
                                                     remove_columns=["attention_mask"] 
                                                     )
-dail_dataset_2048_chunks = dail_tokenized_dataset.map(group_texts, 
+dail_dataset_1024_chunks = dail_tokenized_dataset.map(group_texts, 
                                                       batched=True,
                                                       remove_columns=["attention_mask"]
                                                       )
 
 # now we just have input_ids: tokens (represented by numbers)
 
+'''
 # mix the datasets
 mixed_dataset = concatenate_datasets([
-    nce_dataset_2048_chunks,
-    dail_dataset_2048_chunks
+    nce_dataset_1024_chunks,
+    dail_dataset_1024_chunks
 ]).shuffle(seed=42)
 # now load base model
+'''
 
 
 
@@ -90,10 +92,6 @@ model = AutoModelForCausalLM.from_pretrained(
     cache_dir=cache_path,
     trust_remote_code=True, #  custom qwen3 code for loading
 )
-
-# min 8bit size prevents converting smaller elements to 8 bit which would have minimum memory reduction but maximum variance.
-adam_8bit = bnb.optim.Adam8bit(model.parameters(), min_8bit_size=16384)
-
 
 
 # set up trainer with data collator
@@ -122,12 +120,20 @@ training_args = TrainingArguments(
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=mixed_dataset,
+    train_dataset=nce_dataset_1024_chunks,
     data_collator=data_collator,
-    optimizers=(adam_8bit, None),
 )
 
-# train the model
+# train the model, Irish first 
 trainer.train()
+trainer.save_model("./checkpoints/after_irish")
+
+'''
+# then English
+trainer.train_dataset = dail_dataset_1024_chunks
+trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
+'''
+
+
 # save the model
 trainer.save_model("./checkpoints/qwen3-4b-CPT_dáil_and_ga")
