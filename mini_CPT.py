@@ -129,17 +129,18 @@ trainer = Trainer(
 )
 
 # train the model, Irish first, provide memory snapshot even if it crashes
+torch.cuda.memory._dump_snapshot("before_train.pkl")
+
 try:
     trainer.train()
 except RuntimeError as e:
     print("Training crashed:", e)
-finally:
-    torch.cuda.memory._dump_snapshot("profile.pkl")
-    torch.cuda.memory._record_memory_history(enabled=None)
+    torch.cuda.memory._dump_snapshot("train_crash.pkl")
+
 
 trainer.save_model("./checkpoints/after_irish")
 
-torch.cuda.memory._dump_snapshot("profile.pkl")
+torch.cuda.memory._dump_snapshot("train_finished.pkl")
 torch.cuda.memory._record_memory_history(enabled=None)
 '''
 # then English
