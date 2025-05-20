@@ -2,8 +2,8 @@
 #SBATCH --job-name=mini_qwen_a100
 #SBATCH --output=qwen_mini_cpt_%j.out
 #SBATCH --error=qwen_mini_cpt_%j.err
-#SBATCH --time=02:00:00
-#SBATCH --partition=k2-gpu-v100   #k2-gpu-a100
+#SBATCH --time=00:10:00
+#SBATCH --partition=k2-gpu-a100   #k2-gpu-a100 # view gpu partitions: sinfo -o "%P %G %D %C %t %N" , sinfo | grep gpu
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
