@@ -29,8 +29,8 @@ chunks_dail = [" ".join(dail_1M[i:i+1000])
           for i in range(0, len(dail_1M), 1000)] 
 # TOKENIZATION
 # load in smallest qwen model, practice caching
-cache_path = "./cache/qwen3-0.6"
-model_name = "Qwen/Qwen3-0.6" 
+cache_path = "./cache/qwen3-0.6B"
+model_name = "Qwen/Qwen3-0.6B" 
 tokenizer = AutoTokenizer.from_pretrained(model_name, 
                                           cache_dir=cache_path, 
                                           trust_remote_code=True, #  custom qwen3 code for loading)
@@ -148,4 +148,4 @@ trainer.train_dataset = dail_dataset_256_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
-trainer.save_model("./checkpoints/qwen3-0.6-CPT_dáil_and_ga")
+trainer.save_model("./checkpoints/qwen3-0.6B-CPT_dáil_and_ga")
