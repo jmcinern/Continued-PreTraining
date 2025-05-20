@@ -5,7 +5,6 @@ from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoMod
 from datasets import Dataset, concatenate_datasets
 import os
 import torch
-import bitsandbytes as bnb
 # TXT: raw data
 
 # read in raw text (nce_ga)
