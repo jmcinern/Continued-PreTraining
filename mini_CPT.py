@@ -5,6 +5,7 @@ from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoMod
 from datasets import Dataset, concatenate_datasets
 import os
 import torch
+import bitsandbytes as bnb
 # TXT: raw data
 
 # read in raw text (nce_ga)
@@ -81,8 +82,8 @@ mixed_dataset = concatenate_datasets([
 ]).shuffle(seed=42)
 # now load base model
 
-print(len(mixed_dataset))
-print(len(mixed_dataset[0]["input_ids"]))
+
+
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     torch_dtype=torch.float16, # use float16 if on GPU
@@ -90,6 +91,11 @@ model = AutoModelForCausalLM.from_pretrained(
     cache_dir=cache_path,
     trust_remote_code=True, #  custom qwen3 code for loading
 )
+
+# min 8bit size prevents converting smaller elements to 8 bit which would have minimum memory reduction but maximum variance.
+adam_8bit = bnb.optim.Adam8bit(model.parameters(), min_8bit_size=16384)
+
+
 
 # set up trainer with data collator
 data_collator = DataCollatorForLanguageModeling(
@@ -119,6 +125,7 @@ trainer = Trainer(
     args=training_args,
     train_dataset=mixed_dataset,
     data_collator=data_collator,
+    optimizers=(adam_8bit, None),
 )
 
 # train the model
