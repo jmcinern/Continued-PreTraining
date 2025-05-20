@@ -128,8 +128,15 @@ trainer = Trainer(
     data_collator=data_collator,
 )
 
-# train the model, Irish first 
-trainer.train()
+# train the model, Irish first, provide memory snapshot even if it crashes
+try:
+    trainer.train()
+except RuntimeError as e:
+    print("Training crashed:", e)
+finally:
+    torch.cuda.memory._dump_snapshot("profile.pkl")
+    torch.cuda.memory._record_memory_history(enabled=None)
+
 trainer.save_model("./checkpoints/after_irish")
 
 torch.cuda.memory._dump_snapshot("profile.pkl")
