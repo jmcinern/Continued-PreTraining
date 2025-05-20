@@ -5,6 +5,10 @@ from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoMod
 from datasets import Dataset, concatenate_datasets
 import os
 import torch
+
+# monitor GPU usage
+torch.cuda.memory._record_memory_history(max_entries=100000)
+
 # TXT: raw data
 
 # read in raw text (nce_ga)
@@ -107,7 +111,7 @@ training_args = TrainingArguments(
     num_train_epochs=1,
     per_device_train_batch_size=1,
     save_steps=500,
-    gradient_accumulation_steps=16, # smaller gradient updating, after 100 steps not whole batch.
+    gradient_accumulation_steps=8 # smaller gradient updating, after 100 steps not whole batch.
     gradient_checkpointing=True, # trick to save subsection of forward pass
     logging_steps=100,
     save_total_limit=2,
@@ -128,6 +132,8 @@ trainer = Trainer(
 trainer.train()
 trainer.save_model("./checkpoints/after_irish")
 
+torch.cuda.memory._dump_snapshot("profile.pkl")
+torch.cuda.memory._record_memory_history(enabled=None)
 '''
 # then English
 trainer.train_dataset = dail_dataset_1024_chunks
