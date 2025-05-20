@@ -2,12 +2,9 @@
 # txt -> tokenizer -> chunking -> trainer (CLM) (with datacollator (for batching)) -> model
 # librsaries:
 from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments
-from datasets import Dataset, concatenate_datasets
+from datasets import Dataset #concatenate_datasets
 import os
 import torch
-
-# monitor GPU usage
-torch.cuda.memory._record_memory_history(max_entries=100000)
 
 # TXT: raw data
 
@@ -128,24 +125,11 @@ trainer = Trainer(
     data_collator=data_collator,
 )
 
-# train the model, Irish first, provide memory snapshot even if it crashes
-torch.cuda.memory._dump_snapshot("before_train.pkl")
-
-try:
-    trainer.train()
-except RuntimeError as e:
-    print("Training crashed:", e)
-    torch.cuda.memory._dump_snapshot("train_crash.pkl")
-
-
-trainer.save_model("./checkpoints/after_irish")
-
-torch.cuda.memory._dump_snapshot("train_finished.pkl")
-torch.cuda.memory._record_memory_history(enabled=None)
+trainer.train()
 '''
 # then English
 trainer.train_dataset = dail_dataset_256_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
-trainer.save_model("./checkpoints/qwen3-0.6B-CPT_dáil_and_ga")
+trainer.save_model("./checkpoints/qwen3-0.6B-CPT_ga_1M")
