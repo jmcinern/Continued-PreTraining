@@ -31,7 +31,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True)
 model.eval()
 
-prompt = "Inis dom scéal faoi pholaitíocht na hÉireann."
+prompt = "Inis dom gearrscéal"
 
 inputs = tokenizer(prompt, return_tensors="pt")
 
@@ -49,7 +49,7 @@ with torch.no_grad():
 generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 # Save to file
-with open("cpt_irish_politics_story_1M.txt", "w", encoding="utf-8") as f:
+with open("cpt_irish_politics_story_1M_gearrsceall.txt", "w", encoding="utf-8") as f:
     f.write(generated_text)
 
 print(generated_text)
