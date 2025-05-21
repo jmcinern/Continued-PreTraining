@@ -47,7 +47,7 @@ nce_tokenized_dataset = nce_dataset.map(tokenize_function, batched=True, remove_
 dail_tokenized_dataset = dail_dataset.map(tokenize_function, batched=True, remove_columns=["text"])
 
 # now slice up into blocks to feed into the model
-block_size = 256 # training example size
+block_size = 1024 # training example size
 
 # turns batch into chunks of block_size
 def group_texts(examples):
@@ -62,12 +62,12 @@ def group_texts(examples):
 
  
 # apply the function to the tokenized dataset
-nce_dataset_256_chunks = nce_tokenized_dataset.map(group_texts, 
+nce_dataset_1024_chunks = nce_tokenized_dataset.map(group_texts, 
                                                     batched=True, 
                                                     # attn padding not important for CPT
                                                     remove_columns=["attention_mask"] 
                                                     )
-dail_dataset_256_chunks = dail_tokenized_dataset.map(group_texts, 
+dail_dataset_1024_chunks = dail_tokenized_dataset.map(group_texts, 
                                                       batched=True,
                                                       remove_columns=["attention_mask"]
                                                       )
@@ -77,8 +77,8 @@ dail_dataset_256_chunks = dail_tokenized_dataset.map(group_texts,
 '''
 # mix the datasets
 mixed_dataset = concatenate_datasets([
-    nce_dataset_256_chunks,
-    dail_dataset_256_chunks
+    nce_dataset_1024_chunks,
+    dail_dataset_1024_chunks
 ]).shuffle(seed=42)
 # now load base model
 '''
@@ -119,14 +119,14 @@ training_args = TrainingArguments(
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=nce_dataset_256_chunks,
+    train_dataset=nce_dataset_1024_chunks,
     data_collator=data_collator,
 )
 
 trainer.train()
 '''
 # then English
-trainer.train_dataset = dail_dataset_256_chunks
+trainer.train_dataset = dail_dataset_1024_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
