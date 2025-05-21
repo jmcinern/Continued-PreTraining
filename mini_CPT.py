@@ -87,7 +87,6 @@ mixed_dataset = concatenate_datasets([
 
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
-    torch_dtype=torch.float16, # use float16 if on GPU
     device_map="auto", 
     cache_dir=cache_path,
     trust_remote_code=True, #  custom qwen3 code for loading
