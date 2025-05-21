@@ -16,8 +16,8 @@ with torch.no_grad():
         **inputs,
         max_length=200,
         do_sample=True,
-        top_p=0.9,
-        temperature=0.8
+        top_p=0.8,
+        temperature=0.7
     )
 
 generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -29,7 +29,7 @@ with open("base_irish_politics_story.txt", "w", encoding="utf-8") as f:
     from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
-model_path = "./checkpoints/qwen3-0.6b-CPT_dáil_and_ga"
+model_path = "./checkpoints/qwen3-0.6B-CPT_ga_1M"
 tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True)
 model.eval()
@@ -50,6 +50,6 @@ with torch.no_grad():
 generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 # Save to file
-with open("cpt_irish_politics_story.txt", "w", encoding="utf-8") as f:
+with open("cpt_irish_politics_story_1M.txt", "w", encoding="utf-8") as f:
     f.write(generated_text)
 

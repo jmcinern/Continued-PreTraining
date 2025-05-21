@@ -3,7 +3,6 @@
 # librsaries:
 from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments
 from datasets import Dataset #concatenate_datasets
-import os
 import torch
 
 # TXT: raw data
