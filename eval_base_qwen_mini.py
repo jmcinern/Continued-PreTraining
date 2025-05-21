@@ -40,8 +40,10 @@ with torch.no_grad():
         **inputs,
         max_length=200,
         do_sample=True,
-        top_p=0.8,
-        temperature=0.7
+        top_k=50,
+        top_p=0.9,
+        temperature=0.7,
+        no_repeat_ngram_size=3,
     )
 
 generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
