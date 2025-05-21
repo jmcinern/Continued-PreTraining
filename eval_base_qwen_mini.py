@@ -15,7 +15,7 @@ with torch.no_grad():
     outputs = model.generate(
         **inputs,
         max_length=200,
-        do_sample=False,
+        do_sample=True,
         top_p=0.8,
         temperature=0.7
     )
@@ -39,7 +39,7 @@ with torch.no_grad():
     outputs = model.generate(
         **inputs,
         max_length=200,
-        do_sample=False,
+        do_sample=True,
         top_p=0.8,
         temperature=0.7
     )
