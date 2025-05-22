@@ -51,7 +51,7 @@ nce_tokenized_dataset = nce_dataset.map(tokenize_function, batched=True, remove_
 dail_tokenized_dataset = dail_dataset.map(tokenize_function, batched=True, remove_columns=["text"])
 
 # now slice up into blocks to feed into the model
-block_size = 20.6 # training example size
+block_size = 2048 # training example size
 
 # turns batch into chunks of block_size
 def group_texts(examples):
