@@ -108,7 +108,7 @@ data_collator = DataCollatorForLanguageModeling(
 training_args = TrainingArguments(
     output_dir="./checkpoints",
     overwrite_output_dir=True,
-    num_train_epochs=2,
+    num_train_epochs=5,
     per_device_train_batch_size=1,
     save_steps=500,
     gradient_accumulation_steps=8,# smaller gradient updating, after 100 steps not whole batch.
@@ -136,4 +136,4 @@ trainer.train_dataset = dail_dataset_20.6_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
-trainer.save_model("./checkpoints/qwen3-1.7B-CPT_ga_1M")
+trainer.save_model("./checkpoints/qwen3-0.6B-CPT_ga_1M_5_epochs_val")
