@@ -2,10 +2,10 @@
 #SBATCH --job-name=mini_qwen_a100
 #SBATCH --output=./out/qwen_mini_cpt_%j.out
 #SBATCH --error=./err/qwen_mini_cpt_%j.err
-#SBATCH --time=02:00:00
+#SBATCH --time=030:00:00
 #SBATCH --partition=k2-gpu-v100   #k2-gpu-v100, k2-gpu-interactive 
 # view gpu partitions: sinfo -o "%P %G %D %C %t %N"  sinfo | grep gpu
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
@@ -17,7 +17,7 @@ cd $SLURM_SUBMIT_DIR                     # ensure we’re in the project dir
 #srun python #eval_base_qwen_mini.py 
 srun mini_CPT.py
 
-#accelerate launch \
- # --num_processes 2 \
-  #--mixed_precision no \
-  #mini_CPT.py
+accelerate launch \
+  --num_processes 2 \
+  --mixed_precision no \
+    mini_CPT.py

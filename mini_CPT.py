@@ -2,10 +2,12 @@
 # txt -> tokenizer -> chunking -> trainer (CLM) (with datacollator (for batching)) -> model
 # librsaries:
 from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments
-from datasets import Dataset #concatenate_datasets
+from datasets import Dataset, DatasetDict #concatenate_datasets
 #import torch
-#from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split
 import os
+import math
+
 
 # agent: eval "$(ssh-agent -s)"
 # ssh-add ~/.ssh/id_ed25519_personal
@@ -25,6 +27,15 @@ with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
 chunks_nce = [" ".join(nce_1M[i:i+1000])
           for i in range(0, len(nce_1M), 1000)]
 
+# train set - 94%
+chunks_nce_train, chunks_nce_06_tmp = train_test_split(chunks_nce,
+    test_size=0.06, random_state=42, shuffle=True)
+
+# test and val set - 3% each 
+chunks_nce_test, chunks_nce_val = train_test_split(chunks_nce_06_tmp,
+    test_size=0.5, random_state=42, shuffle=True)
+
+
 chunks_dail = [" ".join(dail_1M[i:i+1000]) 
           for i in range(0, len(dail_1M), 1000)] 
 # TOKENIZATION
@@ -37,7 +48,11 @@ tokenizer = AutoTokenizer.from_pretrained(model_name,
 )
 
 # create a dataset
-nce_dataset = Dataset.from_dict({"text": chunks_nce})
+nce_dataset = DatasetDict({
+    "train": Dataset.from_dict({"text": chunks_nce_train}),
+    "validation": Dataset.from_dict({"text": chunks_nce_val}),
+    "test": Dataset.from_dict({"text": chunks_nce_test}),
+})
 dail_dataset = Dataset.from_dict({"text": chunks_dail})
 
 
@@ -103,37 +118,46 @@ data_collator = DataCollatorForLanguageModeling(
     mlm=False,  # CLM (autoregressive) 
 )
 
-
+question_qualitative = "Inis dom gearrscéal"
 # set up training arguments
 training_args = TrainingArguments(
     output_dir="./checkpoints",
     overwrite_output_dir=True,
-    num_train_epochs=5,
+    num_train_epochs=2,
     per_device_train_batch_size=1,
     save_steps=500,
     gradient_accumulation_steps=8,# smaller gradient updating, after 100 steps not whole batch.
     #gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
     logging_steps=100,
+    evaluation_strategy="steps",
+    eval_steps=100,
     save_total_limit=2,
     prediction_loss_only=True,
-    fp16=False,  # have manaually loaded float16 model, mixed precision not needed as 1 bactch.
-    bf16=False, # v100 doesnt support
     report_to="none"  # disable wandb/hub
 )
 
+# PPL
+def compute_metrics(eval_preds):
+    loss = eval_preds.metrics["eval_loss"]
+    return {"perplexity": math.exp(loss)}
 
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=nce_dataset_chunks,
+    train_dataset=nce_dataset_chunks['train'],
+    eval_dataset=nce_dataset_chunks['validation'],
     data_collator=data_collator,
-)
+    compute_metrics=compute_metrics)
 
 trainer.train()
+
+# evaluate on the test set
+metrics = trainer.evaluate(eval_dataset=nce_dataset_chunks['test'])
+print(metrics)
 '''
 # then English
 trainer.train_dataset = dail_dataset_20.6_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
-trainer.save_model("./checkpoints/qwen3-0.6B-CPT_ga_1M_5_epochs_val")
+trainer.save_model("./checkpoints/qwen3-0.6B-CPT_ga_1M_5_epochs")
