@@ -66,12 +66,12 @@ def group_texts(examples):
 
  
 # apply the function to the tokenized dataset
-nce_dataset_20.6_chunks = nce_tokenized_dataset.map(group_texts, 
+nce_dataset_chunks = nce_tokenized_dataset.map(group_texts, 
                                                     batched=True, 
                                                     # attn padding not important for CPT
                                                     remove_columns=["attention_mask"] 
                                                     )
-dail_dataset_20.6_chunks = dail_tokenized_dataset.map(group_texts, 
+dail_dataset_chunks = dail_tokenized_dataset.map(group_texts, 
                                                       batched=True,
                                                       remove_columns=["attention_mask"]
                                                       )
@@ -123,7 +123,7 @@ training_args = TrainingArguments(
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=nce_dataset_20.6_chunks,
+    train_dataset=nce_dataset_chunks,
     data_collator=data_collator,
 )
 
