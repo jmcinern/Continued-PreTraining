@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
     nce_all_words = f.read()
-    nce_1M = nce_all_words.split()[:1_000_000]
+    nce_1M = nce_all_words.split()[:10_000]
     
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
@@ -162,7 +162,7 @@ trainer.train_dataset = dail_dataset_20.6_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
-model_test_name = "qwen3-0.6B-CPT_ga_1M_5_epochs"
+model_test_name = "qwen3-0.6B-CPT_ga_10K_epochs"
 trainer.save_model("./checkpoints/"+model_test_name)
 
 
