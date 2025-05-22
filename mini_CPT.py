@@ -7,6 +7,8 @@ from datasets import Dataset, DatasetDict #concatenate_datasets
 from sklearn.model_selection import train_test_split
 import os
 import math
+import matplotlib.pyplot as plt
+
 
 
 # agent: eval "$(ssh-agent -s)"
@@ -160,4 +162,40 @@ trainer.train_dataset = dail_dataset_20.6_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
-trainer.save_model("./checkpoints/qwen3-0.6B-CPT_ga_1M_5_epochs")
+model_test_name = "qwen3-0.6B-CPT_ga_1M_5_epochs"
+trainer.save_model("./checkpoints/"+model_test_name)
+
+
+# steps and loss values from the log history
+train_steps, train_ppls = [], []
+val_steps,   val_ppls   = [], []
+
+for entry in trainer.state.log_history:
+    # training‐loss entries come in as 'loss'
+    if "loss" in entry and "step" in entry and "eval_loss" not in entry:
+        train_steps.append(entry["step"])
+        train_ppls.append(math.exp(entry["loss"]))
+    # evaluation entries come in as 'perplexity'
+    if "perplexity" in entry and "step" in entry:
+        val_steps.append(entry["step"])
+        val_ppls.append(entry["perplexity"])
+
+test_loss = metrics["eval_loss"] 
+test_ppl  = math.exp(test_loss)
+
+plt.figure()
+
+plt.axhline(
+    test_ppl,
+    linestyle="--",
+    label=f"Test PPL ({test_ppl:.2f})"
+)
+
+plt.plot(train_steps, train_ppls,    label="Train PPL")
+plt.plot(val_steps,   val_ppls,      label="Validation PPL")
+plt.xlabel("Training Step")
+plt.ylabel("Perplexity")
+plt.title("Train vs. Validation Perplexity: "+model_test_name)
+plt.legend()
+plt.show()
+
