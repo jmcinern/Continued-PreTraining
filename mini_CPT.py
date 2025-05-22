@@ -135,7 +135,8 @@ training_args = TrainingArguments(
     eval_steps=100,
     save_total_limit=2,
     prediction_loss_only=True,
-    report_to="none"  # disable wandb/hub
+    report_to="none",  # disable wandb/hub
+    deepspeed="./ds_config.json", # deepspeed config
 )
 
 # PPL
