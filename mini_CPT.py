@@ -7,12 +7,14 @@ import torch
 from sklearn.model_selection import train_test_split
 
 
+# agent: eval "$(ssh-agent -s)"
+# ssh-add ~/.ssh/id_ed25519_personal
 # TXT: raw data
 
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
     nce_all_words = f.read()
-    nce_1M = nce_all_words.split()[:1_000_000]
+    nce_1M = nce_all_words.split()[10_000_000]
     
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
@@ -27,8 +29,8 @@ chunks_dail = [" ".join(dail_1M[i:i+1000])
           for i in range(0, len(dail_1M), 1000)] 
 # TOKENIZATION
 # load in smallest qwen model, practice caching
-cache_path = "./cache/qwen3-1.7B"
-model_name = "Qwen/Qwen3-1.7B" 
+cache_path = "./cache/qwen3-0.6B"
+model_name = "Qwen/Qwen3-0.6B" 
 tokenizer = AutoTokenizer.from_pretrained(model_name, 
                                           cache_dir=cache_path, 
                                           trust_remote_code=True, #  custom qwen3 code for loading)
@@ -49,7 +51,7 @@ nce_tokenized_dataset = nce_dataset.map(tokenize_function, batched=True, remove_
 dail_tokenized_dataset = dail_dataset.map(tokenize_function, batched=True, remove_columns=["text"])
 
 # now slice up into blocks to feed into the model
-block_size = 21.7 # training example size
+block_size = 20.6 # training example size
 
 # turns batch into chunks of block_size
 def group_texts(examples):
@@ -64,12 +66,12 @@ def group_texts(examples):
 
  
 # apply the function to the tokenized dataset
-nce_dataset_21.7_chunks = nce_tokenized_dataset.map(group_texts, 
+nce_dataset_20.6_chunks = nce_tokenized_dataset.map(group_texts, 
                                                     batched=True, 
                                                     # attn padding not important for CPT
                                                     remove_columns=["attention_mask"] 
                                                     )
-dail_dataset_21.7_chunks = dail_tokenized_dataset.map(group_texts, 
+dail_dataset_20.6_chunks = dail_tokenized_dataset.map(group_texts, 
                                                       batched=True,
                                                       remove_columns=["attention_mask"]
                                                       )
@@ -79,8 +81,8 @@ dail_dataset_21.7_chunks = dail_tokenized_dataset.map(group_texts,
 '''
 # mix the datasets
 mixed_dataset = concatenate_datasets([
-    nce_dataset_21.7_chunks,
-    dail_dataset_21.7_chunks
+    nce_dataset_20.6_chunks,
+    dail_dataset_20.6_chunks
 ]).shuffle(seed=42)
 # now load base model
 '''
@@ -121,15 +123,15 @@ training_args = TrainingArguments(
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=nce_dataset_21.7_chunks,
+    train_dataset=nce_dataset_20.6_chunks,
     data_collator=data_collator,
 )
 
 trainer.train()
 '''
 # then English
-trainer.train_dataset = dail_dataset_21.7_chunks
+trainer.train_dataset = dail_dataset_20.6_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
-trainer.save_model("./checkpoints/qwen3-1.7B-CPT_ga_1M")
+trainer.save_model("./checkpoints/qwen3-0.6B-CPT_ga_1M")
