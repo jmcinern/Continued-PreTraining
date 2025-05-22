@@ -14,7 +14,7 @@ import torch
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
     nce_all_words = f.read()
-    nce_1M = nce_all_words.split()[10_000_000]
+    nce_1M = nce_all_words.split()[:10_000_000]
     
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
@@ -81,8 +81,8 @@ dail_dataset_chunks = dail_tokenized_dataset.map(group_texts,
 '''
 # mix the datasets
 mixed_dataset = concatenate_datasets([
-    nce_dataset_20.6_chunks,
-    dail_dataset_20.6_chunks
+    nce_dataset_chunks,
+    dail_dataset_chunks
 ]).shuffle(seed=42)
 # now load base model
 '''
