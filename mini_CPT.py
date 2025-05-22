@@ -134,4 +134,4 @@ trainer.train_dataset = dail_dataset_20.6_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
-trainer.save_model("./checkpoints/qwen3-0.6B-CPT_ga_1M")
+trainer.save_model("./checkpoints/qwen3-0.6B-CPT_ga_10M")
