@@ -3,9 +3,9 @@
 # librsaries:
 from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments
 from datasets import Dataset #concatenate_datasets
-import torch
+#import torch
 #from sklearn.model_selection import train_test_split
-
+import os
 
 # agent: eval "$(ssh-agent -s)"
 # ssh-add ~/.ssh/id_ed25519_personal
@@ -14,7 +14,7 @@ import torch
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
     nce_all_words = f.read()
-    nce_1M = nce_all_words.split()[:10_000_000]
+    nce_1M = nce_all_words.split()[:1_000_000]
     
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
@@ -103,11 +103,12 @@ data_collator = DataCollatorForLanguageModeling(
     mlm=False,  # CLM (autoregressive) 
 )
 
+
 # set up training arguments
 training_args = TrainingArguments(
     output_dir="./checkpoints",
     overwrite_output_dir=True,
-    num_train_epochs=1,
+    num_train_epochs=2,
     per_device_train_batch_size=1,
     save_steps=500,
     gradient_accumulation_steps=8,# smaller gradient updating, after 100 steps not whole batch.
@@ -119,6 +120,7 @@ training_args = TrainingArguments(
     bf16=False, # v100 doesnt support
     report_to="none"  # disable wandb/hub
 )
+
 
 trainer = Trainer(
     model=model,
@@ -134,4 +136,4 @@ trainer.train_dataset = dail_dataset_20.6_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
-trainer.save_model("./checkpoints/qwen3-0.6B-CPT_ga_10M")
+trainer.save_model("./checkpoints/qwen3-0.6B-CPT_ga_1M-2_epochs")
