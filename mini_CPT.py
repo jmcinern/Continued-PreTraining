@@ -126,7 +126,8 @@ training_args = TrainingArguments(
     overwrite_output_dir=True,
     num_train_epochs=7,
     save_steps=500,
-    #gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
+    per_device_train_batch_size=1
+    gradient_accumulation_steps=8#gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
     logging_steps=100,
     do_eval= True,
     eval_steps=100,
