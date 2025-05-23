@@ -13,6 +13,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=josephmcinerney7575@gmail.com
 module load python3/3.10.5/gcc-9.3.0 # availible python
+module load libs/nvidia-cuda/12.4.0/bin # cuda
 source /mnt/scratch2/users/40460549/cpt-dail/myenv_new/bin/activate
 cd $SLURM_SUBMIT_DIR                     # ensure we’re in the project dir
 #srun python eval_base_qwen_mini.py 
