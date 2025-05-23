@@ -108,7 +108,6 @@ mixed_dataset = concatenate_datasets([
 
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
-    device_map="auto", 
     cache_dir=cache_path,
     trust_remote_code=True, #  custom qwen3 code for loading
 )
@@ -126,9 +125,7 @@ training_args = TrainingArguments(
     output_dir="./checkpoints/"+model_test_name,
     overwrite_output_dir=True,
     num_train_epochs=7,
-    per_device_train_batch_size=1,
     save_steps=500,
-    gradient_accumulation_steps=8,# smaller gradient updating, after 100 steps not whole batch.
     #gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
     logging_steps=100,
     do_eval= True,
