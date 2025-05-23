@@ -10,7 +10,7 @@ import math
 import matplotlib.pyplot as plt
 
 
-
+model_test_name = "qwen3-0.6B-CPT_ga_all_data"
 # agent: eval "$(ssh-agent -s)"
 # ssh-add ~/.ssh/id_ed25519_personal
 # TXT: raw data
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
     nce_all_words = f.read()
-    nce_1M = nce_all_words.split()[:100_000]
+    nce_1M = nce_all_words.split()
     
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
@@ -123,9 +123,9 @@ data_collator = DataCollatorForLanguageModeling(
 question_qualitative = "Inis dom gearrscéal"
 # set up training arguments
 training_args = TrainingArguments(
-    output_dir="./checkpoints",
+    output_dir="./checkpoints/"+model_test_name,
     overwrite_output_dir=True,
-    num_train_epochs=2,
+    num_train_epochs=7,
     per_device_train_batch_size=1,
     save_steps=500,
     gradient_accumulation_steps=8,# smaller gradient updating, after 100 steps not whole batch.
@@ -163,7 +163,6 @@ trainer.train_dataset = dail_dataset_20.6_chunks
 trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
-model_test_name = "qwen3-0.6B-CPT_ga_10K_epochs"
 trainer.save_model("./checkpoints/"+model_test_name)
 
 
