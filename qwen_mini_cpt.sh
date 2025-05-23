@@ -14,7 +14,9 @@
 #SBATCH --mail-user=josephmcinerney7575@gmail.com
 module load python3/3.10.5/gcc-9.3.0 # availible python
 module load libs/nvidia-cuda/12.4.0/bin # cuda
+module load openmpi #multi process
 source /mnt/scratch2/users/40460549/cpt-dail/myenv_new/bin/activate
+pip install --no-cache-dir -r "requirements.txt
 cd $SLURM_SUBMIT_DIR                     # ensure we’re in the project dir
 #srun python eval_base_qwen_mini.py 
 srun python mini_CPT.py
