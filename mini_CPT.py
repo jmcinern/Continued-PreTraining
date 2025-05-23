@@ -10,7 +10,7 @@ import math
 import matplotlib.pyplot as plt
 
 
-model_test_name = "qwen3-0.6B-CPT_ga_1M_2e_2GPU"
+model_test_name = "qwen3-0.6B-CPT_ga_ALL_DATA_7e"
 # agent: eval "$(ssh-agent -s)"
 # ssh-add ~/.ssh/id_ed25519_personal
 # TXT: raw data
