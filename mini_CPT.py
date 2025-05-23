@@ -18,7 +18,7 @@ model_test_name = "qwen3-0.6B-CPT_ga_1M_2e_2GPU"
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
     nce_all_words = f.read()
-    nce_1M = nce_all_words.split()[:1_000_000]
+    nce_1M = nce_all_words.split()
     
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
@@ -125,7 +125,7 @@ question_qualitative = "Inis dom gearrscéal"
 training_args = TrainingArguments(
     output_dir="./checkpoints/"+model_test_name,
     overwrite_output_dir=True,
-    num_train_epochs=2,
+    num_train_epochs=7,
     per_device_train_batch_size=1,
     save_steps=500,
     gradient_accumulation_steps=8,# smaller gradient updating, after 100 steps not whole batch.
