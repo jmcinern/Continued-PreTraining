@@ -10,7 +10,7 @@ import math
 import matplotlib.pyplot as plt
 
 
-model_test_name = "qwen3-0.6B-CPT_ga_all_data"
+model_test_name = "qwen3-0.6B-CPT_ga_1M_2e_2GPU"
 # agent: eval "$(ssh-agent -s)"
 # ssh-add ~/.ssh/id_ed25519_personal
 # TXT: raw data
@@ -18,7 +18,7 @@ model_test_name = "qwen3-0.6B-CPT_ga_all_data"
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
     nce_all_words = f.read()
-    nce_1M = nce_all_words.split()
+    nce_1M = nce_all_words.split()[:1_000_000]
     
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
@@ -42,8 +42,8 @@ chunks_dail = [" ".join(dail_1M[i:i+1000])
           for i in range(0, len(dail_1M), 1000)] 
 # TOKENIZATION
 # load in smallest qwen model, practice caching
-cache_path = "./cache/qwen3-1.7B"
-model_name = "Qwen/Qwen3-1.7B" 
+cache_path = "./cache/qwen3-0.6B"
+model_name = "Qwen/Qwen3-0.6B" 
 tokenizer = AutoTokenizer.from_pretrained(model_name, 
                                           cache_dir=cache_path, 
                                           trust_remote_code=True, #  custom qwen3 code for loading)
@@ -125,7 +125,7 @@ question_qualitative = "Inis dom gearrscéal"
 training_args = TrainingArguments(
     output_dir="./checkpoints/"+model_test_name,
     overwrite_output_dir=True,
-    num_train_epochs=7,
+    num_train_epochs=2,
     per_device_train_batch_size=1,
     save_steps=500,
     gradient_accumulation_steps=8,# smaller gradient updating, after 100 steps not whole batch.
