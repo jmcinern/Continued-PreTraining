@@ -57,7 +57,7 @@ with torch.no_grad():
 generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 # Save to file
-with open("test/cpt_oisin_achoimre_"+model_tested+".txt", "w", encoding="utf-8") as f:
+with open("test_texts/cpt_oisin_achoimre_"+model_tested+".txt", "w", encoding="utf-8") as f:
     f.write(generated_text)
 
 print(generated_text)
