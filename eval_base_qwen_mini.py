@@ -34,7 +34,12 @@ tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True)
 model.eval()
 
-prompt = "Inis dom gearrscéal"
+prompt = '''Bhí trí chéad fear ag baint cloiche i nGleann na Smól. Ní raibh ag éirí leo. Thug siad faoi deara 
+fear mór dathúil ar mhuin chapaill bháin. Thug sé cabhair do na fir. Chrom sé síos agus rug greim 
+ar an gcarraig mhór. Chaith sé uaidh í gan stró ar bith. Bhris giorta an chapaill, áfach agus thit 
+sé go talamh. Rith an chapall leis ar chosa in airde agus fágadh an fear ina luí, ina sheanfhear 
+críonna, caite dall. Tugadh chuig Naomh Pádraig an seanduine. D’inis sé le Naomh Pádraig gurb 
+é Oisín i ndiaidh na Féinne é. D’inis sé a scéal dó.'''
 
 inputs = tokenizer(prompt, return_tensors="pt")
 
@@ -52,7 +57,7 @@ with torch.no_grad():
 generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 # Save to file
-with open("cpt_irish_politics_story_"+model_tested+".txt", "w", encoding="utf-8") as f:
+with open("test/cpt_oisin_achoimre_"+model_tested+".txt", "w", encoding="utf-8") as f:
     f.write(generated_text)
 
 print(generated_text)
