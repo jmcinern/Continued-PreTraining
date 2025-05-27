@@ -14,7 +14,7 @@ inputs = tokenizer(prompt, return_tensors="pt")
 with torch.no_grad():
     outputs = model.generate(
         **inputs,
-        max_length=200,
+        max_length=500,
         do_sample=True,
         top_k=50,
         top_p=0.9,
@@ -46,7 +46,7 @@ inputs = tokenizer(prompt, return_tensors="pt")
 with torch.no_grad():
     outputs = model.generate(
         **inputs,
-        max_length=200,
+        max_length=500,
         do_sample=True,
         top_k=50,
         top_p=0.9,
