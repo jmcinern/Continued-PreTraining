@@ -7,8 +7,15 @@ from datasets import Dataset, DatasetDict #concatenate_datasets
 from sklearn.model_selection import train_test_split
 import os
 import math
+import torch
 import matplotlib.pyplot as plt
 
+if torch.cuda.is_available():
+    print("CUDA is available!")
+    print("Number of GPUs:", torch.cuda.device_count())
+    print("GPU Name:", torch.cuda.get_device_name(0))
+else:
+    print("CUDA is not available.")
 
 model_test_name = "qwen3-0.6B-CPT_ga_ALL_DATA_7e"
 # agent: eval "$(ssh-agent -s)"
