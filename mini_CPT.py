@@ -95,10 +95,11 @@ nce_dataset_chunks = nce_tokenized_dataset.map(group_texts,
                                                     # attn padding not important for CPT
                                                     remove_columns=["attention_mask"] 
                                                     )
-dail_dataset_chunks = dail_tokenized_dataset.map(group_texts, 
+'''dail_dataset_chunks = dail_tokenized_dataset.map(group_texts, 
                                                       batched=True,
                                                       remove_columns=["attention_mask"]
                                                       )
+                                                      '''
 
 # now we just have input_ids: tokens (represented by numbers)
 
