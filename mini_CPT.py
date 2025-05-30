@@ -25,7 +25,7 @@ model_test_name = "qwen3-0.6B-CPT_ga_ALL_DATA_7e"
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
     nce_all_words = f.read()
-    nce_1M = nce_all_words.split()
+    nce_1M = nce_all_words.split()[:1_000_000]
     
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
