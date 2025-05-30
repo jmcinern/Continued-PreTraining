@@ -2,11 +2,11 @@
 #SBATCH --job-name=mini_qwen_a100
 #SBATCH --output=./out/qwen_mini_cpt_%j.out
 #SBATCH --error=./err/qwen_mini_cpt_%j.err
-#SBATCH --time=0-00:10:00
+#SBATCH --time=0-00:15:00
 #SBATCH --partition=k2-gpu-v100   #k2-gpu-v100, k2-gpu-interactive
 # srun --partition=k2-gpu-interactive --gres=gpu:2 --time=1:30:00 --pty bash 
 # view gpu partitions: sinfo -o "%P %G %D %C %t %N"  sinfo | grep gpu
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:3
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=256G
@@ -18,10 +18,9 @@ module load openmpi #multi process
 source /mnt/scratch2/users/40460549/cpt-dail/myenv_new/bin/activate
 pip install --no-cache-dir -r "requirements.txt"
 cd $SLURM_SUBMIT_DIR                     # ensure we’re in the project dir
-srun python eval_base_qwen_mini.py 
+#srun python eval_base_qwen_mini.py 
 #srun python mini_CPT.py
-
 #accelerate launch \
   #--num_processes 2 \
  # --mixed_precision no \
- #   mini_CPT.py
+deepspeed --num_gpus=3 mini_CPT.py
