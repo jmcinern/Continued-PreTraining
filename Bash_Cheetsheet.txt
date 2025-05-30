@@ -1,0 +1,30 @@
+ accelerate launch --num_processes 16 --mixed_precision=no --num_machines=1 --dynamo_backend=no -- mini_CPT.py
+--time=30:00 
+
+srun --partition=k2-gpu-interactive --gres=gpu:1 --mem=64G --time=05:00 --pty bash 
+  module load python3/3.10.5/gcc-9.3.0
+  pip install -r requirements.txt
+  source /mnt/scratch2/users/40460549/cpt-dail/myenv_new/bin/activate
+  module load libs/nvidia-cuda/12.4.0/bin
+  cd \$SLURM_SUBMIT_DIR 
+python eval_base_qwen_mini.py
+
+accelerate launch \
+  --num_processes 8 \
+  --mixed_precision no \
+  --num_machines 1 \
+  --dynamo_backend no \
+  -- \
+  mini_CPT.py
+  
+ module load libs/nvidia-cuda/11.8.0/bin
+
+
+
+module load libs/nvidia-cuda/12.4.0/bin
+
+eval "$(ssh-agent -s)"
+
+ssh-add ~/.ssh/id_ed25519
+
+dáil_huggingface_dataset (1)
