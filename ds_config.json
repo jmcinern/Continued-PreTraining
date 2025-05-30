@@ -17,7 +17,7 @@
     "contiguous_gradients": true
   },
   "fp16": {
-    "enabled": true
+    "enabled": "auto"
   },
   "wall_clock_breakdown": false
 }
