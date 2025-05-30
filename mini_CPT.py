@@ -17,7 +17,7 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available.")
 
-model_test_name = "qwen3-0.6B-CPT_ga_ALL_DATA_7e"
+model_test_name = "qwen3-0.6B-CPT_ga_ALL_DATA_Deepspeed_test"
 # agent: eval "$(ssh-agent -s)"
 # ssh-add ~/.ssh/id_ed25519_personal
 # TXT: raw data
@@ -132,7 +132,7 @@ question_qualitative = "Inis dom gearrscéal"
 training_args = TrainingArguments(
     output_dir="./checkpoints/"+model_test_name,
     overwrite_output_dir=True,
-    num_train_epochs=7,
+    num_train_epochs=5,
     save_steps=500,
     per_device_train_batch_size=1,
     gradient_accumulation_steps=8,#gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
@@ -141,7 +141,7 @@ training_args = TrainingArguments(
     eval_steps=100,
     save_total_limit=2,
     prediction_loss_only=True,
-    fp16=True,  # use mixed precision training
+    fp16=True,
     report_to="none",  # disable wandb/hub
     deepspeed="./ds_config.json", # deepspeed config
 )
