@@ -10,6 +10,7 @@ import math
 import torch
 import matplotlib.pyplot as plt
 
+model_size = "1.7"
 if torch.cuda.is_available():
     print("CUDA is available!")
     print("Number of GPUs:", torch.cuda.device_count())
@@ -17,7 +18,7 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available.")
 
-model_test_name = "qwen3-0.6B-CPT_ga_ALL_DATA_Deepspeed_test"
+model_test_name = "qwen3-"+model_size+"B-CPT_ga_ALL_DATA_Deepspeed_test"
 # agent: eval "$(ssh-agent -s)"
 # ssh-add ~/.ssh/id_ed25519_personal
 # TXT: raw data
@@ -49,8 +50,8 @@ chunks_dail = [" ".join(dail_1M[i:i+1000])
           for i in range(0, len(dail_1M), 1000)] 
 # TOKENIZATION
 # load in smallest qwen model, practice caching
-cache_path = "./cache/qwen3-0.6B"
-model_name = "Qwen/Qwen3-0.6B" 
+cache_path = "./cache/qwen3-"+model_size+"B"
+model_name = "Qwen/Qwen3-"+model_size+"B" 
 tokenizer = AutoTokenizer.from_pretrained(model_name, 
                                           cache_dir=cache_path, 
                                           trust_remote_code=True, #  custom qwen3 code for loading)
@@ -134,13 +135,14 @@ training_args = TrainingArguments(
     overwrite_output_dir=True,
     num_train_epochs=5,
     save_steps=500,
-    per_device_train_batch_size=4,
+    per_device_train_batch_size=1,
     gradient_accumulation_steps=8,#gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
     logging_steps=100,
     do_eval= True,
     eval_steps=100,
     save_total_limit=2,
     prediction_loss_only=True,
+    per_device_train_batch_size=1,
     fp16=True,
     report_to="none",  # disable wandb/hub
     deepspeed="./ds_config.json", # deepspeed config
