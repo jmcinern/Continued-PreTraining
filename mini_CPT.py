@@ -145,6 +145,7 @@ training_args = TrainingArguments(
     fp16=True,
     report_to="none",  # disable wandb/hub
     deepspeed="./ds_config.json", # deepspeed config
+    gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
 )
 
 # PPL
