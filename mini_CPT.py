@@ -142,7 +142,6 @@ training_args = TrainingArguments(
     eval_steps=100,
     save_total_limit=2,
     prediction_loss_only=True,
-    per_device_train_batch_size=1,
     fp16=True,
     report_to="none",  # disable wandb/hub
     deepspeed="./ds_config.json", # deepspeed config
