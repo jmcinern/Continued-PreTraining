@@ -10,7 +10,7 @@ import math
 import torch
 import matplotlib.pyplot as plt
 
-model_size = "1.7"
+model_size = "4"
 if torch.cuda.is_available():
     print("CUDA is available!")
     print("Number of GPUs:", torch.cuda.device_count())
