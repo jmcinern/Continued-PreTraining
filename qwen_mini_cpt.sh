@@ -6,7 +6,7 @@
 #SBATCH --partition=k2-gpu-v100   #k2-gpu-v100, k2-gpu-interactive
 # srun --partition=k2-gpu-interactive --gres=gpu:2 --time=1:30:00 --pty bash 
 # view gpu partitions: sinfo -o "%P %G %D %C %t %N"  sinfo | grep gpu
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=256G
@@ -17,10 +17,11 @@ module load libs/nvidia-cuda/12.4.0/bin # cuda
 module load openmpi #multi process
 source /mnt/scratch2/users/40460549/cpt-dail/myenv_new/bin/activate
 pip install --no-cache-dir -r "requirements.txt"
+export WANDB_API_KEY = "2dab6162cdfdc1b28724ac4ce95bb597d7f85994"
 cd $SLURM_SUBMIT_DIR                     # ensure we’re in the project dir
 #srun python eval_base_qwen_mini.py 
 #srun python mini_CPT.py
 #accelerate launch \
   #--num_processes 2 \
  # --mixed_precision no \
-deepspeed --num_gpus=3 mini_CPT.py
+deepspeed --num_gpus=2 wandb_tuto.py #mini_CPT.py
