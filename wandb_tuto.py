@@ -128,7 +128,7 @@ config = {
     "block_size": block_size,
     "per_device_train_batch_size": 1,
     "gradient_accumulation_steps": 8,
-    "train_batch_size": 32,  # 1 * 8 * 4 GPUs (from deepspeed)
+    "train_batch_size": 16,  # 1 * 8 * 4 GPUs (from deepspeed)
     "learning_rate": 5e-5,
     "epochs": 2,
     "fp16": True,
@@ -179,14 +179,6 @@ training_args = TrainingArguments(
     logging_dir=f"./logs/{model_test_name}",
 )
 
-# Compute metrics (perplexity)
-def compute_metrics(eval_preds):
-    predictions, labels = eval_preds
-    # Calculate perplexity from loss
-    loss = eval_preds.metrics.get("eval_loss", float('inf'))
-    perplexity = math.exp(loss) if loss != float('inf') else float('inf')
-    return {"perplexity": perplexity}
-
 # Create trainer
 print("Creating trainer...")
 trainer = Trainer(
@@ -195,7 +187,6 @@ trainer = Trainer(
     train_dataset=nci_dataset_chunks['train'],
     eval_dataset=nci_dataset_chunks['validation'],
     data_collator=data_collator,
-    compute_metrics=compute_metrics,
 )
 
 # Log some sample data to wandb
