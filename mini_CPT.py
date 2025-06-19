@@ -157,9 +157,9 @@ training_args = TrainingArguments(
     per_device_eval_batch_size=1,
     per_device_train_batch_size=1,
     gradient_accumulation_steps=8,#gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
-    logging_steps=100,
+    logging_steps=10,
     do_eval= True,
-    eval_steps=100,
+    eval_steps=10,
     save_total_limit=2,
     prediction_loss_only=True,
     fp16=True,
@@ -182,6 +182,7 @@ trainer = Trainer(
     compute_metrics=compute_metrics,
     )
 
+print(f"Train batches per epoch: {len(nce_dataset_chunks['train']) // (training_args.per_device_train_batch_size)}")
 
 trainer.train()
 
