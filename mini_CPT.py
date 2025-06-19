@@ -10,10 +10,26 @@ import math
 import torch
 import wandb
 
-wandb_api_key = os.getenv("ANTHROPIC_API_KEY")
-
 
 model_size = "0.6"
+model_test_name = "qwen3-"+model_size+"B-CPT_ga_wandb_tests"
+
+wandb_api_key = os.getenv("WANDB_API_KEY")
+wandb.login(key=wandb_api_key)
+
+LR = 1e-4
+config = {
+    "model_size": f"{model_size}B",
+    "epochs": 2,
+    "learning_rate": LR,  # or whatever you're using
+}
+wandb.init(
+    project="qwen3-irish-cpt",
+    name=model_test_name,
+    config=config,
+    tags=["test-run", "qwen3", "irish", "deepspeed", "multi-gpu"]
+)
+
 if torch.cuda.is_available():
     print("CUDA is available!")
     print("Number of GPUs:", torch.cuda.device_count())
@@ -21,7 +37,6 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available.")
 
-model_test_name = "qwen3-"+model_size+"B-CPT_ga_ALL_DATA_Deepspeed_test"
 # agent: eval "$(ssh-agent -s)"
 # ssh-add ~/.ssh/id_ed25519_personal
 # TXT: raw data
@@ -134,6 +149,7 @@ data_collator = DataCollatorForLanguageModeling(
 question_qualitative = "Inis dom gearrscéal"
 # set up training arguments
 training_args = TrainingArguments(
+    learning_rate=LR,
     output_dir="./checkpoints/"+model_test_name,
     overwrite_output_dir=True,
     num_train_epochs=2,
@@ -147,7 +163,7 @@ training_args = TrainingArguments(
     save_total_limit=2,
     prediction_loss_only=True,
     fp16=True,
-    report_to="none",  # disable wandb/hub
+    report_to="wandb",  # enable wandb/hub
     deepspeed="./ds_config.json", # deepspeed config
     gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
 )
@@ -170,8 +186,14 @@ trainer = Trainer(
 trainer.train()
 
 # evaluate on the test set
-metrics = trainer.evaluate(eval_dataset=nce_dataset_chunks['test'])
-print(metrics)
+test_metrics = trainer.evaluate(eval_dataset=nce_dataset_chunks['test'])
+
+if test_metrics:
+    wandb.log({
+        "final_test_loss": test_metrics.get("eval_loss"),
+        "final_test_perplexity": test_metrics.get("eval_perplexity", math.exp(test_metrics.get("eval_loss", 0))),
+    })
+wandb.finish()
 '''
 # then English
 trainer.train_dataset = dail_dataset_20.6_chunks
