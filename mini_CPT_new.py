@@ -13,29 +13,40 @@ from collections import defaultdict
 class PerFileMetricsCallback(TrainerCallback):
     """Custom callback to track and log per-file metrics during training"""
     
-    def __init__(self, file_to_id_mapping):
+    def __init__(self, file_to_id_mapping, is_main_process=True):
         super().__init__()
         self.file_to_id_mapping = file_to_id_mapping
         self.id_to_file_mapping = {v: k for k, v in file_to_id_mapping.items()}
         self.step_losses = defaultdict(list)
         self.step_count = 0
+        self.is_main_process = is_main_process
         
     def on_log(self, args, state, control, model=None, logs=None, **kwargs):
         """Log per-file metrics to wandb"""
-        if logs is None:
+        if logs is None or not self.is_main_process:
             return
             
-        # Check if we're in training by looking for train logs
-        if any(key.startswith('train_') for key in logs.keys()):
-            self.step_count += 1
-            
-            # Log the overall metrics as they are
-            for key, value in logs.items():
-                if key.startswith('train_'):
-                    wandb.log({f"overall/{key}": value}, step=state.global_step)
+        # Log all metrics with appropriate prefixes
+        for key, value in logs.items():
+            if key.startswith('train_'):
+                # Log overall training metrics
+                wandb.log({f"overall/{key}": value}, step=state.global_step)
+                self.step_count += 1
+            elif key.startswith('eval_'):
+                # Log overall validation metrics
+                wandb.log({f"overall/{key}": value}, step=state.global_step)
+                # Also log as validation for easier tracking
+                clean_key = key.replace('eval_', '')
+                wandb.log({f"validation/{clean_key}": value}, step=state.global_step)
+            else:
+                # Log other metrics (learning rate, etc.)
+                wandb.log({f"training/{key}": value}, step=state.global_step)
                     
     def log_per_file_eval_metrics(self, eval_results, step):
         """Log per-file evaluation metrics"""
+        if not self.is_main_process:
+            return
+            
         for file_prefix, metrics in eval_results.items():
             for metric_name, value in metrics.items():
                 wandb.log({f"{file_prefix}/{metric_name}": value}, step=step)
@@ -60,8 +71,8 @@ class MultiFileDataCollator:
         
         return batch
 
-def discover_and_load_files(data_dir="./data", max_words=100000):
-    """Discover all .txt files and load first max_words from each"""
+def discover_and_load_files(data_dir="./data"):
+    """Discover all .txt files and load their full content"""
     txt_files = glob.glob(os.path.join(data_dir, "*.txt"))
     file_contents = {}
     
@@ -73,25 +84,17 @@ def discover_and_load_files(data_dir="./data", max_words=100000):
         filename = os.path.basename(file_path)
         try:
             with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
+                content = f.read().strip()
                 
-                # Split into words and take first max_words (not chars!)
+                # Count words in full file
                 all_words = content.split()
-                if len(all_words) < max_words:
-                    print(f"Warning: {filename} has only {len(all_words)} words, using all available")
-                    words_subset = all_words
-                else:
-                    words_subset = all_words[:max_words]
                 
-                # Rejoin words back to text
-                content_subset = " ".join(words_subset)
-                
-                if len(words_subset) < 1000:  # Skip very small files
-                    print(f"Skipping {filename}: too small ({len(words_subset)} words)")
+                if len(all_words) < 1000:  # Skip very small files
+                    print(f"Skipping {filename}: too small ({len(all_words)} words)")
                     continue
                     
-                file_contents[filename] = content_subset
-                print(f"Loaded {len(words_subset)} words from {filename}")
+                file_contents[filename] = content
+                print(f"Loaded {len(all_words):,} words from {filename} (full file)")
                 
         except Exception as e:
             print(f"Error loading {filename}: {e}")
@@ -99,10 +102,10 @@ def discover_and_load_files(data_dir="./data", max_words=100000):
     return file_contents
 
 def prepare_bible_ood(bible_content, ood_words=10000):
-    """Prepare bible content for OOD validation/test"""
-    # Take first ood_words words (not chars!)
+    """Prepare bible content for OOD validation/test - use first 10K words"""
+    # Take first ood_words words for OOD evaluation
     all_words = bible_content.split()
-    ood_words_subset = all_words[:ood_words]
+    ood_words_subset = all_words[:min(ood_words, len(all_words))]
     
     # Split into validation and test (50/50)
     mid_point = len(ood_words_subset) // 2
@@ -110,23 +113,68 @@ def prepare_bible_ood(bible_content, ood_words=10000):
     val_text = " ".join(ood_words_subset[:mid_point])
     test_text = " ".join(ood_words_subset[mid_point:])
     
+    print(f"Bible OOD: Using {len(ood_words_subset):,} words ({len(val_text.split()):,} val, {len(test_text.split()):,} test)")
+    
     return val_text, test_text
 
 def chunk_and_process_file(content, filename, chunk_size=1000, file_id=0):
-    """Process a single file: chunk, tokenize, and add file_id"""
+    """Process a single file: chunk and split into train/val/test"""
     words = content.split()
-    chunks = [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
+    total_words = len(words)
     
-    # Split into train/val/test (94/3/3)
-    train_chunks, temp_chunks = train_test_split(chunks, test_size=0.06, random_state=42, shuffle=True)
-    val_chunks, test_chunks = train_test_split(temp_chunks, test_size=0.5, random_state=42, shuffle=True)
+    # Create chunks
+    chunks = [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
+    total_chunks = len(chunks)
+    
+    # Ensure we have enough chunks for proper splitting
+    if total_chunks < 3:
+        print(f"Warning: {filename} has only {total_chunks} chunks, may cause issues with train/val/test split")
+        # For very small files, put everything in train
+        return {
+            'train': chunks,
+            'val': [],
+            'test': [],
+            'filename': filename,
+            'file_id': file_id,
+            'stats': {
+                'total_words': total_words,
+                'total_chunks': total_chunks
+            }
+        }
+    
+    # Split into train/val/test (94/3/3) - adjust for small files
+    if total_chunks >= 10:
+        # Normal splitting for larger files
+        train_chunks, temp_chunks = train_test_split(chunks, test_size=0.06, random_state=42, shuffle=True)
+        if len(temp_chunks) >= 2:
+            val_chunks, test_chunks = train_test_split(temp_chunks, test_size=0.5, random_state=42, shuffle=True)
+        else:
+            # If temp is too small, put it all in val
+            val_chunks = temp_chunks
+            test_chunks = []
+    else:
+        # For smaller files, use simpler splitting
+        train_size = max(1, int(total_chunks * 0.8))  # At least 1 chunk for train
+        val_size = max(1, (total_chunks - train_size) // 2) if total_chunks > 2 else 0
+        test_size = total_chunks - train_size - val_size
+        
+        train_chunks = chunks[:train_size]
+        val_chunks = chunks[train_size:train_size + val_size] if val_size > 0 else []
+        test_chunks = chunks[train_size + val_size:] if test_size > 0 else []
     
     return {
         'train': train_chunks,
         'val': val_chunks,
         'test': test_chunks,
         'filename': filename,
-        'file_id': file_id
+        'file_id': file_id,
+        'stats': {
+            'total_words': total_words,
+            'total_chunks': total_chunks,
+            'train_chunks': len(train_chunks),
+            'val_chunks': len(val_chunks),
+            'test_chunks': len(test_chunks)
+        }
     }
 
 def tokenize_function(examples, tokenizer):
@@ -154,15 +202,13 @@ def main():
     # Check if this is the main process in distributed training
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     is_main_process = local_rank == 0
-    
-    # Configuration
+      # Configuration
     model_size = "0.6"
-    model_test_name = f"MULTI-FILE-DS-{model_size}B-CPT_ga_wandb"
+    model_test_name = f"MULTI-FILE-FULL-DS-{model_size}B-CPT_ga_wandb"
     LR = 1e-4
     block_size = 2048
     chunk_size = 1000
-    
-    # Initialize wandb only on main process
+      # Initialize wandb only on main process
     if is_main_process:
         wandb_api_key = os.getenv("WANDB_API_KEY")
         if wandb_api_key:
@@ -170,28 +216,29 @@ def main():
     
     config = {
         "model_size": f"{model_size}B",
-        "epochs": 2,        "learning_rate": LR,
+        "epochs": 2,
+        "learning_rate": LR,
         "block_size": block_size,
         "chunk_size": chunk_size,
-        "training_approach": "multi-file-concurrent"
-    }
+        "training_approach": "multi-file-concurrent-full-dataset",
+        "data_limit": "full_files_no_limit",
+        "notes": "Training on complete files without word count restrictions"    }
     
     if is_main_process:
         wandb.init(
             project="qwen3-irish-cpt-multifile",
             name=model_test_name,
             config=config,
-            tags=["multi-file", "qwen3", "irish", "deepspeed", "mixed-batch"]
+            tags=["multi-file", "qwen3", "irish", "deepspeed", "mixed-batch", "full-dataset"]
         )
     
     print("CUDA availability:", torch.cuda.is_available())
     if torch.cuda.is_available():
         print(f"Number of GPUs: {torch.cuda.device_count()}")
         print(f"GPU Name: {torch.cuda.get_device_name(0)}")
-    
-    # Step 1: Discover and load all files
+      # Step 1: Discover and load all files
     print("\n=== Step 1: Loading files ===")
-    file_contents = discover_and_load_files("./data", max_words=100000)
+    file_contents = discover_and_load_files("./data")
     
     # Step 2: Handle bible_gaeilge.txt specially for OOD
     bible_val_text, bible_test_text = None, None
@@ -211,17 +258,50 @@ def main():
     # Step 4: Create file-to-ID mapping
     file_to_id = {filename: idx for idx, filename in enumerate(ordered_files)}
     id_to_file = {idx: filename for filename, idx in file_to_id.items()}
-    
-    # Step 5: Process each file
+      # Step 5: Process each file
     print("\n=== Step 2: Processing files ===")
     all_processed_data = {}
+    total_words = 0
+    file_stats = {}
     
     for filename in ordered_files:
         content = file_contents[filename]
         file_id = file_to_id[filename]
+        
+        # Count words in this file
+        word_count = len(content.split())
+        total_words += word_count
+        
         processed = chunk_and_process_file(content, filename, chunk_size, file_id)
         all_processed_data[filename] = processed
-        print(f"Processed {filename}: {len(processed['train'])} train, {len(processed['val'])} val, {len(processed['test'])} test chunks")
+          # Store file statistics
+        file_stats[filename] = {
+            "word_count": word_count,
+            "train_chunks": len(processed['train']),
+            "val_chunks": len(processed['val']),
+            "test_chunks": len(processed['test']),
+            "total_chunks": len(processed['train']) + len(processed['val']) + len(processed['test'])
+        }
+        
+        print(f"Processed {filename}: {word_count:,} words → {len(processed['train'])} train, {len(processed['val'])} val, {len(processed['test'])} test chunks")
+    
+    print(f"\nDataset Summary:")
+    print(f"Total files: {len(ordered_files)}")
+    print(f"Total words: {total_words:,}")
+    print(f"Average words per file: {total_words // len(ordered_files):,}")
+    
+    # Log file statistics to wandb
+    if is_main_process:
+        for filename, stats in file_stats.items():
+            wandb.log({
+                f"file_stats/{filename.replace('.txt', '')}_words": stats["word_count"],
+                f"file_stats/{filename.replace('.txt', '')}_chunks": stats["total_chunks"]
+            })
+        wandb.log({
+            "dataset/total_words": total_words,
+            "dataset/total_files": len(ordered_files),
+            "dataset/avg_words_per_file": total_words // len(ordered_files)
+        })
       # Step 6: Load tokenizer and model
     print("\n=== Step 3: Loading model and tokenizer ===")
     cache_path = f"./cache/qwen3-{model_size}B"
@@ -336,11 +416,19 @@ def main():
     
     print(f"Final mixed datasets: {len(train_chunks)} train, {len(val_chunks)} val, {len(test_chunks)} test blocks")
     
+    # Log final dataset statistics
+    if is_main_process:
+        wandb.log({
+            "final_dataset/train_blocks": len(train_chunks),
+            "final_dataset/val_blocks": len(val_chunks),
+            "final_dataset/test_blocks": len(test_chunks),
+            "final_dataset/total_blocks": len(train_chunks) + len(val_chunks) + len(test_chunks)
+        })
+    
     # Step 10: Setup training
-    print("\n=== Step 7: Setting up training ===")
-      # Custom data collator and callback
+    print("\n=== Step 7: Setting up training ===")    # Custom data collator and callback
     data_collator = MultiFileDataCollator(tokenizer=tokenizer)
-    metrics_callback = PerFileMetricsCallback(file_to_id)
+    metrics_callback = PerFileMetricsCallback(file_to_id, is_main_process=is_main_process)
     
     training_args = TrainingArguments(
         learning_rate=LR,
@@ -384,10 +472,9 @@ def main():
     
     # Step 12: Evaluation on test sets
     print("\n=== Step 9: Final evaluation ===")
-    
-    # Evaluate on overall test set
+      # Evaluate on overall test set
     test_metrics = trainer.evaluate(eval_dataset=test_chunks)
-    if test_metrics:
+    if test_metrics and is_main_process:
         wandb.log({
             "final_test_loss": test_metrics.get("eval_loss"),
             "final_test_perplexity": test_metrics.get("eval_perplexity", math.exp(test_metrics.get("eval_loss", 0))),
@@ -438,12 +525,12 @@ def main():
     
     # Log all evaluation results
     metrics_callback.log_per_file_eval_metrics(eval_results, trainer.state.global_step)
-    
-    # Step 13: Save model
+      # Step 13: Save model
     print("\n=== Step 10: Saving model ===")
     trainer.save_model(f"./checkpoints/{model_test_name}")
     
-    wandb.finish()
+    if is_main_process:
+        wandb.finish()
     print("Training completed successfully!")
 
 if __name__ == "__main__":
