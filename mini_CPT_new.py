@@ -59,8 +59,8 @@ class MultiFileDataCollator(DataCollatorForLanguageModeling):
         
         return batch
 
-def discover_and_load_files(data_dir="./data", max_chars=100000):
-    """Discover all .txt files and load first max_chars from each"""
+def discover_and_load_files(data_dir="./data", max_words=100000):
+    """Discover all .txt files and load first max_words from each"""
     txt_files = glob.glob(os.path.join(data_dir, "*.txt"))
     file_contents = {}
     
@@ -72,26 +72,42 @@ def discover_and_load_files(data_dir="./data", max_chars=100000):
         filename = os.path.basename(file_path)
         try:
             with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()[:max_chars]
-                if len(content) < 1000:  # Skip very small files
-                    print(f"Skipping {filename}: too small ({len(content)} chars)")
+                content = f.read()
+                
+                # Split into words and take first max_words (not chars!)
+                all_words = content.split()
+                if len(all_words) < max_words:
+                    print(f"Warning: {filename} has only {len(all_words)} words, using all available")
+                    words_subset = all_words
+                else:
+                    words_subset = all_words[:max_words]
+                
+                # Rejoin words back to text
+                content_subset = " ".join(words_subset)
+                
+                if len(words_subset) < 1000:  # Skip very small files
+                    print(f"Skipping {filename}: too small ({len(words_subset)} words)")
                     continue
-                file_contents[filename] = content
-                print(f"Loaded {len(content)} chars from {filename}")
+                    
+                file_contents[filename] = content_subset
+                print(f"Loaded {len(words_subset)} words from {filename}")
+                
         except Exception as e:
             print(f"Error loading {filename}: {e}")
     
     return file_contents
 
-def prepare_bible_ood(bible_content, ood_chars=10000):
+def prepare_bible_ood(bible_content, ood_words=10000):
     """Prepare bible content for OOD validation/test"""
-    ood_text = bible_content[:ood_chars]
-    # Split into validation and test (50/50)
-    words = ood_text.split()
-    mid_point = len(words) // 2
+    # Take first ood_words words (not chars!)
+    all_words = bible_content.split()
+    ood_words_subset = all_words[:ood_words]
     
-    val_text = " ".join(words[:mid_point])
-    test_text = " ".join(words[mid_point:])
+    # Split into validation and test (50/50)
+    mid_point = len(ood_words_subset) // 2
+    
+    val_text = " ".join(ood_words_subset[:mid_point])
+    test_text = " ".join(ood_words_subset[mid_point:])
     
     return val_text, test_text
 
@@ -166,10 +182,9 @@ def main():
     if torch.cuda.is_available():
         print(f"Number of GPUs: {torch.cuda.device_count()}")
         print(f"GPU Name: {torch.cuda.get_device_name(0)}")
-    
-    # Step 1: Discover and load all files
+      # Step 1: Discover and load all files
     print("\n=== Step 1: Loading files ===")
-    file_contents = discover_and_load_files("./data", max_chars=100000)
+    file_contents = discover_and_load_files("./data", max_words=100000)
     
     # Step 2: Handle bible_gaeilge.txt specially for OOD
     bible_val_text, bible_test_text = None, None
