@@ -44,9 +44,12 @@ chunks_test, chunks_val = train_test_split(
     chunks_temp, test_size=0.5, random_state=42, shuffle=True
 )
 
-print(f"Train chunks: {len(chunks_train)}")
-print(f"Val chunks: {len(chunks_val)}")
-print(f"Test chunks: {len(chunks_test)}")
+if len(chunks_train) == 0:
+    raise ValueError("Training set is empty! Check your data and chunking logic.")
+if len(chunks_val) == 0:
+    raise ValueError("Validation set is empty! Check your data and chunking logic.")
+if len(chunks_test) == 0:
+    raise ValueError("Test set is empty! Check your data and chunking logic.")
 
 # Load tokenizer and model
 print("Loading tokenizer and model...")
