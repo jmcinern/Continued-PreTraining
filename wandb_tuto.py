@@ -20,7 +20,7 @@ else:
 
 # Configuration
 model_size = "0.6"
-model_test_name = f"qwen3-{model_size}B-CPT_ga_NCI_10K_test"
+model_test_name = f"qwen3-{model_size}B-CPT_ga_NCI_100K_test"
 
 # Load and prepare data (first 10k words from NCI_ga.txt)
 print("Loading data...")
@@ -38,7 +38,7 @@ print(f"Created {len(chunks_nci)} chunks")
 
 # Create train/val/test splits
 chunks_train, chunks_temp = train_test_split(
-    chunks_nci, test_size=0.06, random_state=42, shuffle=True
+    chunks_nci, test_size=0.1, random_state=42, shuffle=True
 )
 chunks_test, chunks_val = train_test_split(
     chunks_temp, test_size=0.5, random_state=42, shuffle=True
@@ -121,9 +121,9 @@ config = {
     "train_size": len(chunks_train),
     "val_size": len(chunks_val),
     "test_size": len(chunks_test),
-    "train_ratio": 0.94,
-    "val_ratio": 0.03,
-    "test_ratio": 0.03,
+    "train_ratio": 0.9,
+    "val_ratio": 0.05,
+    "test_ratio": 0.05,
     "chunk_size_words": 1000,
     "block_size": block_size,
     "per_device_train_batch_size": 1,
