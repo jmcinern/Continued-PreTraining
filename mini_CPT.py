@@ -12,7 +12,7 @@ import wandb
 
 
 model_size = "0.6"
-model_test_name = "qwen3-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "REDUCED_STEPS_qwen3-"+model_size+"B-CPT_ga_wandb_tests"
 
 wandb_api_key = os.getenv("WANDB_API_KEY")
 wandb.login(key=wandb_api_key)
