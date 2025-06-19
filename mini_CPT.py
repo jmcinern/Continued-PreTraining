@@ -12,21 +12,14 @@ import wandb
 
 
 model_size = "0.6"
-model_test_name = "NO_DS-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "LESS_STEPS-"+model_size+"B-CPT_ga_wandb_tests"
 
 wandb_api_key = os.getenv("WANDB_API_KEY")
 wandb.login(key=wandb_api_key)
 import wandb
 import time
 
-wandb.init(project="test-logging")
 
-for i in range(10):
-    wandb.log({"test_loss": 1.0 - i*0.1, "step": i})
-    time.sleep(2)
-    print(f"Logged step {i}")
-
-wandb.finish()
 LR = 1e-4
 config = {
     "model_size": f"{model_size}B",
@@ -167,9 +160,9 @@ training_args = TrainingArguments(
     per_device_eval_batch_size=1,
     per_device_train_batch_size=1,
     gradient_accumulation_steps=8,#gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
-    logging_steps=10,
+    logging_steps=3,
     do_eval= True,
-    eval_steps=10,
+    eval_steps=3,
     save_total_limit=2,
     prediction_loss_only=True,
     fp16=True,
