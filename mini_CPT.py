@@ -164,7 +164,7 @@ training_args = TrainingArguments(
     prediction_loss_only=True,
     fp16=True,
     report_to="wandb",  # enable wandb/hub
-    deepspeed="./ds_config.json", # deepspeed config
+    #deepspeed="./ds_config.json", # deepspeed config
     gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
 )
 
