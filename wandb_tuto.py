@@ -38,7 +38,7 @@ print(f"Created {len(chunks_nci)} chunks")
 
 # Create train/val/test splits
 chunks_train, chunks_temp = train_test_split(
-    chunks_nci, test_size=0.1, random_state=42, shuffle=True
+    chunks_nci, test_size=0.2, random_state=42, shuffle=True
 )
 chunks_test, chunks_val = train_test_split(
     chunks_temp, test_size=0.5, random_state=42, shuffle=True
