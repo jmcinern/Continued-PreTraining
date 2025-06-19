@@ -16,7 +16,17 @@ model_test_name = "NO_DS-"+model_size+"B-CPT_ga_wandb_tests"
 
 wandb_api_key = os.getenv("WANDB_API_KEY")
 wandb.login(key=wandb_api_key)
+import wandb
+import time
 
+wandb.init(project="test-logging")
+
+for i in range(10):
+    wandb.log({"test_loss": 1.0 - i*0.1, "step": i})
+    time.sleep(2)
+    print(f"Logged step {i}")
+
+wandb.finish()
 LR = 1e-4
 config = {
     "model_size": f"{model_size}B",
