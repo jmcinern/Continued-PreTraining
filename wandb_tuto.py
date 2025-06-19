@@ -20,13 +20,13 @@ else:
 
 # Configuration
 model_size = "0.6"
-model_test_name = f"qwen3-{model_size}B-CPT_ga_NCI_100K_test"
+model_test_name = f"qwen3-{model_size}B-CPT_ga_NCI_1M_test"
 
 # Load and prepare data (first 10k words from NCI_ga.txt)
 print("Loading data...")
 with open("./data/NCI_ga.txt", "r", encoding="utf-8") as f:
     nci_all_words = f.read()
-    nci_10k = nci_all_words.split()[:100_000]
+    nci_10k = nci_all_words.split()[:1_000_000]
 
 print(f"Loaded {len(nci_10k):,} words from NCI_ga.txt")
 
