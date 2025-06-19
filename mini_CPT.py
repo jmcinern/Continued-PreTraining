@@ -12,7 +12,7 @@ import wandb
 
 
 model_size = "0.6"
-model_test_name = "LESS_STEPS-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "WITH_DS-"+model_size+"B-CPT_ga_wandb_tests"
 
 wandb_api_key = os.getenv("WANDB_API_KEY")
 wandb.login(key=wandb_api_key)
@@ -167,7 +167,7 @@ training_args = TrainingArguments(
     prediction_loss_only=True,
     fp16=True,
     report_to="wandb",  # enable wandb/hub
-    #deepspeed="./ds_config.json", # deepspeed config
+    deepspeed="./ds_config.json", # deepspeed config
     gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
 )
 
