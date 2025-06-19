@@ -136,7 +136,7 @@ question_qualitative = "Inis dom gearrscéal"
 training_args = TrainingArguments(
     output_dir="./checkpoints/"+model_test_name,
     overwrite_output_dir=True,
-    num_train_epochs=5,
+    num_train_epochs=2,
     save_steps=500,
     per_device_train_batch_size=1,
     gradient_accumulation_steps=8,#gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
@@ -162,7 +162,9 @@ trainer = Trainer(
     train_dataset=nce_dataset_chunks['train'],
     eval_dataset=nce_dataset_chunks['validation'],
     data_collator=data_collator,
-    compute_metrics=compute_metrics)
+    compute_metrics=compute_metrics,
+    per_device_eval_batch_size=1,)
+
 
 trainer.train()
 
