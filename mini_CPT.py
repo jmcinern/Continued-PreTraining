@@ -27,7 +27,7 @@ model_test_name = "qwen3-"+model_size+"B-CPT_ga_ALL_DATA_Deepspeed_test"
 # TXT: raw data
 
 # read in raw text (nce_ga)
-with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
+with open("./data/NCI_ga.txt", "r", encoding="utf-8") as f:
     nce_all_words = f.read()
     nce_1M = nce_all_words.split()[:100_000]
     
