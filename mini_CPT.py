@@ -8,9 +8,12 @@ from sklearn.model_selection import train_test_split
 import os
 import math
 import torch
-import matplotlib.pyplot as plt
+import wandb
 
-model_size = "4"
+wandb_api_key = os.getenv("ANTHROPIC_API_KEY")
+
+
+model_size = "0.6"
 if torch.cuda.is_available():
     print("CUDA is available!")
     print("Number of GPUs:", torch.cuda.device_count())
@@ -26,12 +29,12 @@ model_test_name = "qwen3-"+model_size+"B-CPT_ga_ALL_DATA_Deepspeed_test"
 # read in raw text (nce_ga)
 with open("./data/nce_ga.txt", "r", encoding="utf-8") as f:
     nce_all_words = f.read()
-    nce_1M = nce_all_words.split()[:1_000_000]
+    nce_1M = nce_all_words.split()[:100_000]
     
 # read in dáil text
 with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
     dail_all_words = f.read()
-    dail_1M = dail_all_words.split()[:1_000_000]
+    dail_1M = dail_all_words.split()[:100_000]
 
 # chunk before tokenization
 chunks_nce = [" ".join(nce_1M[i:i+1000])
@@ -173,38 +176,3 @@ trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
 '''
 # save the model
 trainer.save_model("./checkpoints/"+model_test_name)
-
-
-# steps and loss values from the log history
-train_steps, train_ppls = [], []
-val_steps,   val_ppls   = [], []
-
-for entry in trainer.state.log_history:
-    # training‐loss entries come in as 'loss'
-    if "loss" in entry and "step" in entry and "eval_loss" not in entry:
-        train_steps.append(entry["step"])
-        train_ppls.append(math.exp(entry["loss"]))
-    # evaluation entries come in as 'perplexity'
-    if "perplexity" in entry and "step" in entry:
-        val_steps.append(entry["step"])
-        val_ppls.append(entry["perplexity"])
-
-test_loss = metrics["eval_loss"] 
-test_ppl  = math.exp(test_loss)
-
-plt.figure()
-
-plt.axhline(
-    test_ppl,
-    linestyle="--",
-    label=f"Test PPL ({test_ppl:.2f})"
-)
-
-plt.plot(train_steps, train_ppls,    label="Train PPL")
-plt.plot(val_steps,   val_ppls,      label="Validation PPL")
-plt.xlabel("Training Step")
-plt.ylabel("Perplexity")
-plt.title("Train vs. Validation Perplexity: "+model_test_name)
-plt.legend()
-plt.show()
-
