@@ -1,6 +1,6 @@
 # Overview: Multi-file concurrent training pipeline for continued pre-training
 # Loads all .txt files, creates mixed-batch training with per-file tracking
-from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, TrainerCallback
+from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, TrainerCallback, default_data_collator
 from datasets import Dataset, DatasetDict, concatenate_datasets
 from sklearn.model_selection import train_test_split
 import os
@@ -9,7 +9,6 @@ import torch
 import wandb
 import glob
 from collections import defaultdict
-import numpy as np
 
 class PerFileMetricsCallback(TrainerCallback):
     """Custom callback to track and log per-file metrics during training"""
@@ -41,18 +40,20 @@ class PerFileMetricsCallback(TrainerCallback):
             for metric_name, value in metrics.items():
                 wandb.log({f"{file_prefix}/{metric_name}": value}, step=step)
 
-class MultiFileDataCollator(DataCollatorForLanguageModeling):
+class MultiFileDataCollator:
     """Custom data collator that preserves file_id information for per-file tracking"""
     
-    def __init__(self, tokenizer, mlm=False, mlm_probability=0.15, pad_to_multiple_of=None, return_tensors="pt"):
-        super().__init__(tokenizer, mlm, mlm_probability, pad_to_multiple_of, return_tensors)
+    def __init__(self, tokenizer, pad_to_multiple_of=None, return_tensors="pt"):
+        self.tokenizer = tokenizer
+        self.pad_to_multiple_of = pad_to_multiple_of
+        self.return_tensors = return_tensors
         
     def __call__(self, features):
         # Extract file_ids before processing
         file_ids = [f.pop("file_id", -1) for f in features]
         
-        # Process the batch normally
-        batch = super().__call__(features)
+        # Use default data collator for causal LM
+        batch = default_data_collator(features)
         
         # Add file_ids back to the batch
         batch["file_ids"] = torch.tensor(file_ids, dtype=torch.long)
@@ -150,6 +151,10 @@ def group_texts(examples, block_size=2048):
         return {"input_ids": input_chunks, "labels": input_chunks}
 
 def main():
+    # Check if this is the main process in distributed training
+    local_rank = int(os.environ.get("LOCAL_RANK", 0))
+    is_main_process = local_rank == 0
+    
     # Configuration
     model_size = "0.6"
     model_test_name = f"MULTI-FILE-DS-{model_size}B-CPT_ga_wandb"
@@ -157,32 +162,34 @@ def main():
     block_size = 2048
     chunk_size = 1000
     
-    # Initialize wandb
-    wandb_api_key = os.getenv("WANDB_API_KEY")
-    if wandb_api_key:
-        wandb.login(key=wandb_api_key)
+    # Initialize wandb only on main process
+    if is_main_process:
+        wandb_api_key = os.getenv("WANDB_API_KEY")
+        if wandb_api_key:
+            wandb.login(key=wandb_api_key)
     
     config = {
         "model_size": f"{model_size}B",
-        "epochs": 2,
-        "learning_rate": LR,
+        "epochs": 2,        "learning_rate": LR,
         "block_size": block_size,
         "chunk_size": chunk_size,
         "training_approach": "multi-file-concurrent"
     }
     
-    wandb.init(
-        project="qwen3-irish-cpt-multifile",
-        name=model_test_name,
-        config=config,
-        tags=["multi-file", "qwen3", "irish", "deepspeed", "mixed-batch"]
-    )
+    if is_main_process:
+        wandb.init(
+            project="qwen3-irish-cpt-multifile",
+            name=model_test_name,
+            config=config,
+            tags=["multi-file", "qwen3", "irish", "deepspeed", "mixed-batch"]
+        )
     
     print("CUDA availability:", torch.cuda.is_available())
     if torch.cuda.is_available():
         print(f"Number of GPUs: {torch.cuda.device_count()}")
         print(f"GPU Name: {torch.cuda.get_device_name(0)}")
-      # Step 1: Discover and load all files
+    
+    # Step 1: Discover and load all files
     print("\n=== Step 1: Loading files ===")
     file_contents = discover_and_load_files("./data", max_words=100000)
     
@@ -331,9 +338,8 @@ def main():
     
     # Step 10: Setup training
     print("\n=== Step 7: Setting up training ===")
-    
-    # Custom data collator and callback
-    data_collator = MultiFileDataCollator(tokenizer=tokenizer, mlm=False)
+      # Custom data collator and callback
+    data_collator = MultiFileDataCollator(tokenizer=tokenizer)
     metrics_callback = PerFileMetricsCallback(file_to_id)
     
     training_args = TrainingArguments(
