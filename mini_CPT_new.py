@@ -25,8 +25,8 @@ class PerFileMetricsCallback(TrainerCallback):
         if logs is None:
             return
             
-        # Only process during training
-        if state.is_in_train:
+        # Check if we're in training by looking for train logs
+        if any(key.startswith('train_') for key in logs.keys()):
             self.step_count += 1
             
             # Log the overall metrics as they are
