@@ -134,6 +134,7 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=8,#gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
     logging_steps=3,
     do_eval= True,
+    evaluation_strategy="steps",
     eval_steps=3,
     save_total_limit=2,
     prediction_loss_only=True,
