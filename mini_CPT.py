@@ -1,7 +1,7 @@
 # Overview: practice python script to get familiar with libraries required for continued pre-trainiing
 # txt -> tokenizer -> chunking -> trainer (CLM) (with datacollator (for batching)) -> model
 # librsaries:
-from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments
+from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, TrainerCallback
 from datasets import Dataset, DatasetDict #concatenate_datasets
 #import torch
 from sklearn.model_selection import train_test_split
@@ -12,7 +12,7 @@ import wandb
 
 
 model_size = "0.6"
-model_test_name = "FRESH_SCRIPT-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "FORCE_LOG-"+model_size+"B-CPT_ga_wandb_tests"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
 
@@ -121,8 +121,12 @@ data_collator = DataCollatorForLanguageModeling(
     mlm=False,  # CLM (autoregressive) 
 )
 
-question_qualitative = "Inis dom gearrscéal"
-# set up training arguments
+class ForceWandbLogging(TrainerCallback):
+    def on_log(self, args, state, control, model=None, logs=None, **kwargs):
+        if logs is not None:
+            print(f"FORCING WANDB LOG: {logs}")  # Debug print
+            # Force log everything to wandb
+            wandb.log(logs, step=state.global_step)# set up training arguments
 training_args = TrainingArguments(
     learning_rate=LR,
     output_dir="./checkpoints/"+model_test_name,
@@ -145,12 +149,13 @@ training_args = TrainingArguments(
 )
 
 trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=dataset_chunks['train'],
-    eval_dataset=dataset_chunks['validation'],
-    data_collator=data_collator,
-    )
+model=model,
+args=training_args,
+train_dataset=dataset_chunks['train'],
+eval_dataset=dataset_chunks['validation'],
+data_collator=data_collator,
+callbacks=[ForceWandbLogging()] 
+)
 
 print(f"Train batches per epoch: {len(dataset_chunks['train']) // (training_args.per_device_train_batch_size)}")
 
