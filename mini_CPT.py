@@ -12,7 +12,14 @@ import wandb
 
 
 model_size = "0.6"
-model_test_name = "WITH_DS-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "FRESH_SCRIPT-"+model_size+"B-CPT_ga_wandb_tests"
+cache_path = "./cache/qwen3-"+model_size+"B"
+model_name = "Qwen/Qwen3-"+model_size+"B"
+
+tokenizer = AutoTokenizer.from_pretrained(model_name, 
+                                        cache_dir=cache_path, 
+                                        trust_remote_code=True, #  custom qwen3 code for loading)
+)
 
 wandb_api_key = os.getenv("WANDB_API_KEY")
 wandb.login(key=wandb_api_key)
@@ -40,101 +47,66 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available.")
 
-# agent: eval "$(ssh-agent -s)"
-# ssh-add ~/.ssh/id_ed25519_personal
-# TXT: raw data
-
-# read in raw text (nce_ga)
-with open("./data/NCI_ga.txt", "r", encoding="utf-8") as f:
-    nce_all_words = f.read()
-    nce_1M = nce_all_words.split()[:100_000]
+# 1. read file
+# 2. chunk
+# 3. split
+# 4. -> dataset
+# 5. tokenize
+def file_to_chunks(file_path, chunk_size=1000):
+    # 1. read file
+    with open(file_path, "r", encoding="utf-8") as f:
+        file_text = f.read()
+        file_words = file_text.split()[:100_000]
+        
+    # 2. chunk
+    chunks = [" ".join(file_words[i:i+chunk_size])
+            for i in range(0, len(file_words), chunk_size)]
     
-# read in dáil text
-with open("./data/dáil_who_said_what.txt", "r", encoding="utf-8") as f:
-    dail_all_words = f.read()
-    dail_1M = dail_all_words.split()[:100_000]
+    # 3. split
+    train, tmp = train_test_split(chunks, test_size=0.06, random_state=42, shuffle=True)
 
-# chunk before tokenization
-chunks_nce = [" ".join(nce_1M[i:i+1000])
-          for i in range(0, len(nce_1M), 1000)]
+    # test and val set - 3% each 
+    test, val = train_test_split(tmp, test_size=0.5, random_state=42, shuffle=True)
+    
+    # 4. -> dataset
+    dataset = DatasetDict({
+    "train": Dataset.from_dict({"text": train}),
+    "validation": Dataset.from_dict({"text": val}),
+    "test": Dataset.from_dict({"text": test}),
+    })
 
-# train set - 94%
-chunks_nce_train, chunks_nce_06_tmp = train_test_split(chunks_nce,
-    test_size=0.06, random_state=42, shuffle=True)
+    # 5. tokenize
+    # b) helper function
+    def tokenize_function(raw_chunk):
+        return tokenizer(raw_chunk['text'])
+    
+    # c) tokenize dataset 
+    dataset_tokenized = dataset.map(tokenize_function, batched=True, remove_columns=["text"])
 
-# test and val set - 3% each 
-chunks_nce_test, chunks_nce_val = train_test_split(chunks_nce_06_tmp,
-    test_size=0.5, random_state=42, shuffle=True)
+    # tokenized -> model input size blocks
+    block_size = 2048 
 
+    # turns batch into chunks of block_size
+    def group_texts(examples):
+        # convert list of lists into a single list
+        concatenated = sum(examples["input_ids"], [])
+        # calculate max number of tokens given block size.
+        total = len(concatenated) // block_size * block_size
+        # cut up list by block size
+        input_chunks = [concatenated[i:i+block_size] for i in range(0, total, block_size)]
+        # need to have labels for the dataset batching 
+        return {"input_ids": input_chunks, "labels": input_chunks} 
 
-chunks_dail = [" ".join(dail_1M[i:i+1000]) 
-          for i in range(0, len(dail_1M), 1000)] 
-# TOKENIZATION
-# load in smallest qwen model, practice caching
-cache_path = "./cache/qwen3-"+model_size+"B"
-model_name = "Qwen/Qwen3-"+model_size+"B" 
-tokenizer = AutoTokenizer.from_pretrained(model_name, 
-                                          cache_dir=cache_path, 
-                                          trust_remote_code=True, #  custom qwen3 code for loading)
-)
+    
+    # apply the function to the tokenized dataset
+    dataset_chunks = dataset_tokenized.map(group_texts, 
+                                                        batched=True, 
+                                                        # attn padding not important for CPT
+                                                        remove_columns=["attention_mask"] 
+                                                        )
+    return dataset_chunks
 
-# create a dataset
-nce_dataset = DatasetDict({
-    "train": Dataset.from_dict({"text": chunks_nce_train}),
-    "validation": Dataset.from_dict({"text": chunks_nce_val}),
-    "test": Dataset.from_dict({"text": chunks_nce_test}),
-})
-dail_dataset = Dataset.from_dict({"text": chunks_dail})
-
-
-# simple helper function to tokenize the dataset
-def tokenize_function(raw_chunk):
-    return tokenizer(raw_chunk['text'])
-
-
-# tokenize after having split into chunks on the new line
-nce_tokenized_dataset = nce_dataset.map(tokenize_function, batched=True, remove_columns=["text"])
-dail_tokenized_dataset = dail_dataset.map(tokenize_function, batched=True, remove_columns=["text"])
-
-# now slice up into blocks to feed into the model
-block_size = 2048 # training example size
-
-# turns batch into chunks of block_size
-def group_texts(examples):
-    # convert list of lists into a single list
-    concatenated = sum(examples["input_ids"], [])
-    # calculate max number of tokens given block size.
-    total = len(concatenated) // block_size * block_size
-    # cut up list by block size
-    input_chunks = [concatenated[i:i+block_size] for i in range(0, total, block_size)]
-    # need to have labels for the dataset batching 
-    return {"input_ids": input_chunks, "labels": input_chunks} 
-
- 
-# apply the function to the tokenized dataset
-nce_dataset_chunks = nce_tokenized_dataset.map(group_texts, 
-                                                    batched=True, 
-                                                    # attn padding not important for CPT
-                                                    remove_columns=["attention_mask"] 
-                                                    )
-'''dail_dataset_chunks = dail_tokenized_dataset.map(group_texts, 
-                                                      batched=True,
-                                                      remove_columns=["attention_mask"]
-                                                      )
-                                                      '''
-
-# now we just have input_ids: tokens (represented by numbers)
-
-'''
-# mix the datasets
-mixed_dataset = concatenate_datasets([
-    nce_dataset_chunks,
-    dail_dataset_chunks
-]).shuffle(seed=42)
-# now load base model
-'''
-
-
+dataset_chunks = file_to_chunks("./data/NCI_ga.txt", chunk_size=10000)
 
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
@@ -179,18 +151,18 @@ def compute_metrics(eval_preds):
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=nce_dataset_chunks['train'],
-    eval_dataset=nce_dataset_chunks['validation'],
+    train_dataset=dataset_chunks['train'],
+    eval_dataset=dataset_chunks['validation'],
     data_collator=data_collator,
     compute_metrics=compute_metrics,
     )
 
-print(f"Train batches per epoch: {len(nce_dataset_chunks['train']) // (training_args.per_device_train_batch_size)}")
+print(f"Train batches per epoch: {len(dataset_chunks['train']) // (training_args.per_device_train_batch_size)}")
 
 trainer.train()
 
 # evaluate on the test set
-test_metrics = trainer.evaluate(eval_dataset=nce_dataset_chunks['test'])
+test_metrics = trainer.evaluate(eval_dataset=dataset_chunks['test'])
 
 if test_metrics:
     wandb.log({
