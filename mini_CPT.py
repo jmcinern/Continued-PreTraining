@@ -56,7 +56,7 @@ def file_to_chunks(file_path, chunk_size=1000):
     # 1. read file
     with open(file_path, "r", encoding="utf-8") as f:
         file_text = f.read()
-        file_words = file_text.split()[:100_000]
+        file_words = file_text.split()[:1_000_000]
         
     # 2. chunk
     chunks = [" ".join(file_words[i:i+chunk_size])
