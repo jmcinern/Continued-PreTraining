@@ -1,7 +1,7 @@
 # Overview: practice python script to get familiar with libraries required for continued pre-trainiing
 # txt -> tokenizer -> chunking -> trainer (CLM) (with datacollator (for batching)) -> model
 # librsaries:
-from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, TrainerCallback
+from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, TrainerCallback, TrainerControl
 from transformers.trainer_utils import get_last_checkpoint
 from datasets import Dataset, DatasetDict #concatenate_datasets
 #import torch
@@ -11,6 +11,18 @@ import math
 import torch
 import wandb
 import random
+
+class StopAfterFirstCheckpointCallback(TrainerCallback):
+    def __init__(self):
+        self.checkpoint_saved = False
+
+    def on_save(self, args, state, control, **kwargs):
+        if not self.checkpoint_saved:
+            self.checkpoint_saved = True
+            print("First checkpoint saved. Stopping training...")
+            control.should_training_stop = True
+        return control
+
 
  
 model_size = "0.6"
@@ -226,7 +238,7 @@ args=training_args,
 train_dataset=final_dataset['train'],
 eval_dataset=final_dataset['validation'],
 data_collator=data_collator,
-#callbacks=[ForceWandbLogging()] 
+callbacks=[StopAfterFirstCheckpointCallback()] # safely stop training after first checkpoint to simulate resuming from checkpoint
 )
 
 
