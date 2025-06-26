@@ -12,18 +12,6 @@ import torch
 import wandb
 import random
 
-class StopAfterFirstCheckpointCallback(TrainerCallback):
-    def __init__(self):
-        self.checkpoint_saved = False
-
-    def on_save(self, args, state, control, **kwargs):
-        if not self.checkpoint_saved:
-            self.checkpoint_saved = True
-            print("First checkpoint saved. Stopping training...")
-            control.should_training_stop = True
-        return control
-
-
  
 model_size = "0.6"
 model_test_name = "1622_CKPT_TEST_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
@@ -187,16 +175,6 @@ data_collator = DataCollatorForLanguageModeling(
     mlm=False,  # CLM (autoregressive) 
 )
 
-# Explicitly log to WandB as report_to as trainer arg not working as expected (no train/val logs)
-'''
-class ForceWandbLogging(TrainerCallback):
-    def on_log(self, args, state, control, model=None, logs=None, **kwargs):
-        if logs is not None:
-            print(f"FORCING WANDB LOG: {logs}")  # Debug print
-            # Force log everything to wandb
-            wandb.log(logs, step=state.global_step)# set up training arguments
-'''
-
 
 training_args = TrainingArguments(
     learning_rate=LR,
@@ -238,7 +216,7 @@ args=training_args,
 train_dataset=final_dataset['train'],
 eval_dataset=final_dataset['validation'],
 data_collator=data_collator,
-callbacks=[StopAfterFirstCheckpointCallback()] # safely stop training after first checkpoint to simulate resuming from checkpoint
+#callbacks=[StopAfterFirstCheckpointCallback()] # safely stop training after first checkpoint to simulate resuming from checkpoint (for testing)
 )
 
 
@@ -254,10 +232,30 @@ log_test_metrics_to_wandb(final_dataset, trainer)
 
 
 wandb.finish()
-'''
-# then English
-trainer.train_dataset = dail_dataset_20.6_chunks
-trainer.train(resume_from_checkpoint="./checkpoints/after_irish")
-'''
+
 # save the model
 trainer.save_model("./checkpoints/"+model_test_name)
+
+# CODE GRAVEYARD
+'''''''''
+class StopAfterFirstCheckpointCallback(TrainerCallback):
+    def __init__(self):
+        self.checkpoint_saved = False
+
+    def on_save(self, args, state, control, **kwargs):
+        if not self.checkpoint_saved:
+            self.checkpoint_saved = True
+            print("First checkpoint saved. Stopping training...")
+            control.should_training_stop = True
+        return control
+'''''''''
+
+# Explicitly log to WandB as report_to as trainer arg not working as expected (no train/val logs)
+'''
+class ForceWandbLogging(TrainerCallback):
+    def on_log(self, args, state, control, model=None, logs=None, **kwargs):
+        if logs is not None:
+            print(f"FORCING WANDB LOG: {logs}")  # Debug print
+            # Force log everything to wandb
+            wandb.log(logs, step=state.global_step)# set up training arguments
+'''
