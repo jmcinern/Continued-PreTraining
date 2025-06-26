@@ -13,7 +13,7 @@ import random
 
  
 model_size = "0.6"
-model_test_name = "1M_chars_per_file_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "NO_DS_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
 
@@ -193,7 +193,7 @@ training_args = TrainingArguments(
     prediction_loss_only=True,
     fp16=True,
     report_to="wandb",  # enable wandb/hub
-    deepspeed="./ds_config.json", # deepspeed config
+    #deepspeed="./ds_config.json", # deepspeed config
     gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
 )
 bitext_trainer = Trainer(
