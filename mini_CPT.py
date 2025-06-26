@@ -232,9 +232,11 @@ data_collator=data_collator,
 
 last_ckpt = get_last_checkpoint(training_args.output_dir)
 if last_ckpt:
+    print("Resuming from checkpoint:", last_ckpt)
     trainer.train(resume_from_checkpoint=True)
 else:
-   trainer.train(resume_from_checkpoint=False) # first run (False is default)
+    print("No checkpoint found, starting fresh training.")
+    trainer.train(resume_from_checkpoint=False) # first run (False is default)
     
 log_test_metrics_to_wandb(final_dataset, trainer)
 
