@@ -176,12 +176,14 @@ data_collator = DataCollatorForLanguageModeling(
 )
 
 # Explicitly log to WandB as report_to as trainer arg not working as expected (no train/val logs)
+'''
 class ForceWandbLogging(TrainerCallback):
     def on_log(self, args, state, control, model=None, logs=None, **kwargs):
         if logs is not None:
             print(f"FORCING WANDB LOG: {logs}")  # Debug print
             # Force log everything to wandb
             wandb.log(logs, step=state.global_step)# set up training arguments
+'''
 
 
 training_args = TrainingArguments(
@@ -224,7 +226,7 @@ args=training_args,
 train_dataset=final_dataset['train'],
 eval_dataset=final_dataset['validation'],
 data_collator=data_collator,
-callbacks=[ForceWandbLogging()] 
+#callbacks=[ForceWandbLogging()] 
 )
 
 
