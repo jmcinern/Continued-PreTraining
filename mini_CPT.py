@@ -188,7 +188,7 @@ class ForceWandbLogging(TrainerCallback):
 
 training_args = TrainingArguments(
     learning_rate=LR,
-    output_dir="./checkpoints/"+model_test_name,
+    output_dir="./checkpoints/"+ "CKPT_TEST",
     overwrite_output_dir=True,
     num_train_epochs=2,
     save_steps=5,
