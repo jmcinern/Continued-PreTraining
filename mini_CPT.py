@@ -9,22 +9,22 @@ import os
 import math
 import torch
 import wandb
+import random
 
-
+ 
 model_size = "0.6"
-model_test_name = "FORCE_LOG-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "First_Full_Train-"+model_size+"B-CPT_ga_wandb_tests"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
 
-tokenizer = AutoTokenizer.from_pretrained(model_name, 
-                                        cache_dir=cache_path, 
-                                        trust_remote_code=True, #  custom qwen3 code for loading)
+tokenizer = AutoTokenizer.from_pretrained(
+    "jmcinern/qwen_tokenizer_ga",
+    trust_remote_code=True  
 )
 
 wandb_api_key = os.getenv("WANDB_API_KEY")
 wandb.login(key=wandb_api_key)
 import wandb
-import time
 
 
 LR = 1e-4
@@ -34,7 +34,7 @@ config = {
     "learning_rate": LR,  # or whatever you're using
 }
 wandb.init(
-    project="qwen3-irish-cpt",
+    project="train-CPT",
     name=model_test_name,
     config=config,
     tags=["test-run", "qwen3", "irish", "deepspeed", "multi-gpu"]
@@ -106,7 +106,55 @@ def file_to_chunks(file_path, chunk_size=1000):
                                                         )
     return dataset_chunks
 
-dataset_chunks = file_to_chunks("./data/NCI_ga.txt", chunk_size=10000)
+def shuffle(chunks_list):
+    """Shuffle list of chunks in place and return"""
+    shuffled = chunks_list.copy()  # Don't modify original
+    random.shuffle(shuffled)
+    return shuffled
+
+def create_dataset_from_chunks(chunks_list, test_size=0.06, random_state=42):
+    """Convert list of chunks back to DatasetDict format"""
+    # Split shuffled chunks
+    train, tmp = train_test_split(chunks_list, test_size=test_size, random_state=random_state, shuffle=True)
+    test, val = train_test_split(tmp, test_size=0.5, random_state=random_state, shuffle=True)
+    
+    # Create DatasetDict
+    dataset = DatasetDict({
+        "train": Dataset.from_dict({"input_ids": train, "labels": train}),
+        "validation": Dataset.from_dict({"input_ids": val, "labels": val}),
+        "test": Dataset.from_dict({"input_ids": test, "labels": test}),
+    })
+    
+    return dataset
+
+# data dir with english and irish data
+data_dir = "./data/"
+# get file names in ./data/ from os
+data_file_paths = [f for f in os.listdir(data_dir)]
+
+# get bitext for initial alignment (parallel corpus)
+bitext_file = [f for f in data_file_paths if 'bitext' in f.lower()]
+bitext_path = os.path.join(data_dir, bitext_file[0])
+bitext_dataset = file_to_chunks(bitext_path, chunk_size=10000)
+
+# other files
+other_files = [f for f in data_file_paths if 'bitext' not in f.lower()]
+all_chunks = []
+for f_name in other_files:
+    f_path = os.path.join(data_dir, f_name)
+    file_chunks = file_to_chunks(f_path, chunk_size=10000)
+    # get all data
+    all_chunks.extend(file_chunks['train']['input_ids'])
+    all_chunks.extend(file_chunks['validation']['input_ids'])
+    all_chunks.extend(file_chunks['test']['input_ids'])
+
+# mix files to prevent sequential training
+shuffled_chunks = shuffle(all_chunks)
+
+
+mixed_dataset = create_dataset_from_chunks(shuffled_chunks)
+# get subset for testing
+mixed_dataset = mixed_dataset.select(range(0, 10_000)) # limit to 100k for testing
 
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
@@ -121,12 +169,15 @@ data_collator = DataCollatorForLanguageModeling(
     mlm=False,  # CLM (autoregressive) 
 )
 
+# Explicitly log to WandB as report_to as trainer arg not working as expected (no train/val logs)
 class ForceWandbLogging(TrainerCallback):
     def on_log(self, args, state, control, model=None, logs=None, **kwargs):
         if logs is not None:
             print(f"FORCING WANDB LOG: {logs}")  # Debug print
             # Force log everything to wandb
             wandb.log(logs, step=state.global_step)# set up training arguments
+
+
 training_args = TrainingArguments(
     learning_rate=LR,
     output_dir="./checkpoints/"+model_test_name,
@@ -147,28 +198,48 @@ training_args = TrainingArguments(
     deepspeed="./ds_config.json", # deepspeed config
     gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
 )
-
+bitext_trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=bitext_dataset['train'],
+    eval_dataset=bitext_dataset['validation'],
+    data_collator=data_collator,
+    callbacks=[ForceWandbLogging()] 
+)
 trainer = Trainer(
 model=model,
 args=training_args,
-train_dataset=dataset_chunks['train'],
-eval_dataset=dataset_chunks['validation'],
+train_dataset=mixed_dataset['train'],
+eval_dataset=mixed_dataset['validation'],
 data_collator=data_collator,
 callbacks=[ForceWandbLogging()] 
 )
 
-print(f"Train batches per epoch: {len(dataset_chunks['train']) // (training_args.per_device_train_batch_size)}")
+print(f"Train batches per epoch: {len(mixed_dataset['train']) // (training_args.per_device_train_batch_size)}")
 
-trainer.train()
+# train with ga-en data first
+bitext_trainer.train()
+bitext_trainer.save_model("./checkpoints/after_bitext")
+
 
 # evaluate on the test set
-test_metrics = trainer.evaluate(eval_dataset=dataset_chunks['test'])
+def log_test_metrics_to_wandb(dataset, trainer):
+    test_metrics = trainer.evaluate(eval_dataset=dataset['test'])
 
-if test_metrics:
-    wandb.log({
-        "final_test_loss": test_metrics.get("eval_loss"),
-        "final_test_perplexity": test_metrics.get("eval_perplexity", math.exp(test_metrics.get("eval_loss", 0))),
-    })
+    if test_metrics:
+        wandb.log({
+            "final_test_loss": test_metrics.get("eval_loss"),
+            "final_test_perplexity": test_metrics.get("eval_perplexity", math.exp(test_metrics.get("eval_loss", 0))),
+        })
+
+log_test_metrics_to_wandb(bitext_dataset, bitext_trainer)
+
+# pick up where bitext left off with mixed monolingual en and ga data. 
+trainer.model = bitext_trainer.model
+trainer.train()
+log_test_metrics_to_wandb(mixed_dataset, trainer)
+
+
 wandb.finish()
 '''
 # then English
