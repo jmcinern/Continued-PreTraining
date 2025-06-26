@@ -13,7 +13,7 @@ import random
 
  
 model_size = "0.6"
-model_test_name = "Subset_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "1M_chars_per_file_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
 
@@ -153,12 +153,6 @@ shuffled_chunks = shuffle(all_chunks)
 
 
 mixed_dataset = create_dataset_from_chunks(shuffled_chunks)
-# get subset for testing
-mixed_dataset = DatasetDict({
-    "train": mixed_dataset['train'].select(range(0, min(8000, len(mixed_dataset['train'])))),
-    "validation": mixed_dataset['validation'].select(range(0, min(1000, len(mixed_dataset['validation'])))),
-    "test": mixed_dataset['test'].select(range(0, min(1000, len(mixed_dataset['test']))))
-})
 
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
