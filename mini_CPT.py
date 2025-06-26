@@ -191,7 +191,7 @@ training_args = TrainingArguments(
     output_dir="./checkpoints/"+ "CKPT_TEST",
     overwrite_output_dir=True,
     num_train_epochs=2,
-    save_steps=5,
+    save_steps=1,
     per_device_eval_batch_size=1,
     per_device_train_batch_size=1,
     gradient_accumulation_steps=8,#gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
