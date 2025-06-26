@@ -2,6 +2,7 @@
 # txt -> tokenizer -> chunking -> trainer (CLM) (with datacollator (for batching)) -> model
 # librsaries:
 from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, TrainerCallback
+from transformers.trainer_utils import get_last_checkpoint
 from datasets import Dataset, DatasetDict #concatenate_datasets
 #import torch
 from sklearn.model_selection import train_test_split
@@ -225,7 +226,14 @@ eval_dataset=final_dataset['validation'],
 data_collator=data_collator,
 callbacks=[ForceWandbLogging()] 
 )
-trainer.train(resume_from_checkpoint=True)
+
+
+last_ckpt = get_last_checkpoint(training_args.output_dir)
+if last_ckpt:
+    trainer.train(resume_from_checkpoint=True)
+else:
+   trainer.train(resume_from_checkpoint=False) # first run (False is default)
+    
 log_test_metrics_to_wandb(final_dataset, trainer)
 
 
