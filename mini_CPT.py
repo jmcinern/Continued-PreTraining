@@ -13,7 +13,7 @@ import random
 
  
 model_size = "0.6"
-model_test_name = "NO_DS_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "CKPT_TEST_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
 
@@ -56,7 +56,7 @@ def file_to_chunks(file_path, chunk_size=1000):
     # 1. read file
     with open(file_path, "r", encoding="utf-8") as f:
         file_text = f.read()
-        file_words = file_text.split()[:1_000_000]
+        file_words = file_text.split()[:100_000]
         
     # 2. chunk
     chunks = [" ".join(file_words[i:i+chunk_size])
@@ -137,6 +137,11 @@ bitext_file = [f for f in data_file_paths if 'bitext' in f.lower()]
 bitext_path = os.path.join(data_dir, bitext_file[0])
 bitext_dataset = file_to_chunks(bitext_path, chunk_size=10000)
 
+bitext_chunks = []
+bitext_chunks.extend(bitext_dataset['train']['input_ids'])
+bitext_chunks.extend(bitext_dataset['validation']['input_ids'])
+bitext_chunks.extend(bitext_dataset['test']['input_ids'])
+
 # other files
 other_files = [f for f in data_file_paths if 'bitext' not in f.lower()]
 all_chunks = []
@@ -149,10 +154,12 @@ for f_name in other_files:
     all_chunks.extend(file_chunks['test']['input_ids'])
 
 # mix files to prevent sequential training
-shuffled_chunks = shuffle(all_chunks)
+shuffled_mixed_chunks = shuffle(all_chunks)
 
+# propend bitext data to the mixed dataset
+combined_chunks = bitext_chunks + shuffled_mixed_chunks
 
-mixed_dataset = create_dataset_from_chunks(shuffled_chunks)
+final_dataset = create_dataset_from_chunks(combined_chunks)
 
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
@@ -181,14 +188,14 @@ training_args = TrainingArguments(
     output_dir="./checkpoints/"+model_test_name,
     overwrite_output_dir=True,
     num_train_epochs=2,
-    save_steps=500,
+    save_steps=5,
     per_device_eval_batch_size=1,
     per_device_train_batch_size=1,
     gradient_accumulation_steps=8,#gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
-    logging_steps=3,
+    logging_steps=1,
     do_eval= True,
     eval_strategy="steps",
-    eval_steps=3,
+    eval_steps=1,
     save_total_limit=2,
     prediction_loss_only=True,
     fp16=True,
@@ -196,28 +203,6 @@ training_args = TrainingArguments(
     #deepspeed="./ds_config.json", # deepspeed config
     gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
 )
-bitext_trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=bitext_dataset['train'],
-    eval_dataset=bitext_dataset['validation'],
-    data_collator=data_collator,
-    callbacks=[ForceWandbLogging()] 
-)
-trainer = Trainer(
-model=model,
-args=training_args,
-train_dataset=mixed_dataset['train'],
-eval_dataset=mixed_dataset['validation'],
-data_collator=data_collator,
-callbacks=[ForceWandbLogging()] 
-)
-
-print(f"Train batches per epoch: {len(mixed_dataset['train']) // (training_args.per_device_train_batch_size)}")
-
-# train with ga-en data first
-bitext_trainer.train()
-bitext_trainer.save_model("./checkpoints/after_bitext")
 
 
 # evaluate on the test set
@@ -230,12 +215,18 @@ def log_test_metrics_to_wandb(dataset, trainer):
             "final_test_perplexity": test_metrics.get("eval_perplexity", math.exp(test_metrics.get("eval_loss", 0))),
         })
 
-log_test_metrics_to_wandb(bitext_dataset, bitext_trainer)
 
 # pick up where bitext left off with mixed monolingual en and ga data. 
-trainer.model = bitext_trainer.model
-trainer.train()
-log_test_metrics_to_wandb(mixed_dataset, trainer)
+trainer = Trainer(
+model=model,
+args=training_args,
+train_dataset=final_dataset['train'],
+eval_dataset=final_dataset['validation'],
+data_collator=data_collator,
+callbacks=[ForceWandbLogging()] 
+)
+trainer.train(resume_from_checkpoint=True)
+log_test_metrics_to_wandb(final_dataset, trainer)
 
 
 wandb.finish()
