@@ -2,7 +2,7 @@
 #SBATCH --job-name=CPT_JM
 #SBATCH --output=./out/qwen_mini_cpt_%j.out
 #SBATCH --error=./err/qwen_mini_cpt_%j.err
-#SBATCH --time=00:30:00
+#SBATCH --time=01:30:00
 #SBATCH --partition=k2-gpu-v100  
 #SBATCH --gres=gpu:2
 #SBATCH --ntasks=1

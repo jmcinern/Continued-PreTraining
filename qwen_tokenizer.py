@@ -1,7 +1,7 @@
 from transformers import AutoTokenizer
 import os
 
-def merge_tokenizer_and_push_to_hub(hf_token):
+def merge_tokenizer_and_push_to_hub(hf_token, tokinizer_name):
     # Original tokenizer
     base_tokenizer = AutoTokenizer.from_pretrained(
         "Qwen/Qwen3-8B", trust_remote_code=True, use_fast=True
@@ -67,17 +67,19 @@ def merge_tokenizer_and_push_to_hub(hf_token):
     base_tokenizer.add_tokens(new_tokens)
 
     # Save tokenizer
-    #temp_tokenizer.save_pretrained("./qwen_en_ga_from_scratch2")
-    temp_tokenizer.push_to_hub("jmcinern/hub_push_test", token=hf_token)
+    temp_tokenizer.save_pretrained(f"./{tokinizer_name}")
+    temp_tokenizer.push_to_hub(f"jmcinern/{tokinizer_name}", token=hf_token)
 
 # main
 if __name__ == "__main__":
     # ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\
     # Testing
+    tokinizer_name = "qwen_tkn_ga_en_big"
+    print("Ruinning the tokenizer trainer")
     hf_tkn = os.getenv("HF_KEY")
-    merge_tokenizer_and_push_to_hub(hf_tkn)
+    merge_tokenizer_and_push_to_hub(hf_tkn, tokinizer_name)
     sample_text = "Chuaigh mé go dtí an siopa agus cheannaigh mé bainne, bhí sé go háilinn. What about you? Did you buy anything from the shop? Lascaine a bhí ann, everything was half price."
-    tkn_extended = AutoTokenizer.from_pretrained("jmcinern/qwen_en_ga_from_scratch2", trust_remote_code=True)
+    tkn_extended = AutoTokenizer.from_pretrained(f"jmcinern/{tokinizer_name}", trust_remote_code=True)
 
     tkn_old_model = AutoTokenizer.from_pretrained("Qwen/Qwen3-8B", trust_remote_code=True)
 

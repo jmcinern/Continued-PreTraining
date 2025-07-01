@@ -2,8 +2,8 @@
 #SBATCH --job-name=Qwen_Tokenizer_Train
 #SBATCH --output=./out/tkn_train_%j.out
 #SBATCH --error=./err/tkn_train_%j.err
-#SBATCH --time=00:45:00
-#SBATCH --partition=k2-lowpri  # Using a CPU partition is better for this task
+#SBATCH --time=01:30:00
+#SBATCH --partition=k2-medpri  # Using a CPU partition is better for this task
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8   # Increased CPUs as tokenizer training can be parallelized
 #SBATCH --mem=128G          # Requesting 128GB of RAM, which should be plenty

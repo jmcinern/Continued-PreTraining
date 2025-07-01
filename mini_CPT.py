@@ -12,6 +12,7 @@ import torch
 import wandb
 import random
 
+print("Running the script")
  
 model_size = "0.6"
 model_test_name = "1327_Subset_Test_CKPT_TEST_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
@@ -28,7 +29,7 @@ wandb.login(key=wandb_api_key)
 import wandb
 
 
-LR = 1e-4
+LR = 1e4
 config = {
     "model_size": f"{model_size}B",
     "epochs": 2,
