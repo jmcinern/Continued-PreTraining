@@ -17,6 +17,6 @@
     "overlap_comm": true
   },
   "fp16": {
-    "enabled": true
+    "enabled": false
   }
 }
