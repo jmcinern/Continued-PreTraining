@@ -15,7 +15,7 @@ module load libs/nvidia-cuda/12.4.0/bin # cuda
 module load openmpi #multi process
 source /mnt/scratch2/users/40460549/cpt-dail/myenv_new/bin/activate
 pip install --no-cache-dir -r "requirements.txt"
-export WANDB_API_KEY = "2dab6162cdfdc1b28724ac4ce95bb597d7f85994"
+export WANDB_API_KEY="2dab6162cdfdc1b28724ac4ce95bb597d7f85994"
 cd $SLURM_SUBMIT_DIR                     # ensure we’re in the project dir
 deepspeed --num_gpus=2 mini_CPT.py
 
