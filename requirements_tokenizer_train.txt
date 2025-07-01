@@ -1,0 +1,6 @@
+# Requirements for Qwen Tokenizer Training
+transformers
+tokenizers
+datasets
+torch
+huggingface_hub
