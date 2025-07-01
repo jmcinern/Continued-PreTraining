@@ -1,126 +1,128 @@
 from transformers import AutoTokenizer
 import os
 
-# --- FIX: Create a generator to iterate over files without loading all to memory ---
-def get_corpus_iterator(file_paths, split_on):
-    """
-    A generator that yields lines from a list of files.
-    This avoids loading the entire corpus into memory.
-    """
-    for file_path in file_paths:
-        if not os.path.exists(file_path):
-            print(f"⚠️ Warning: File not found, skipping: {file_path}")
-            continue
-        
-        print(f"📖 Processing file: {file_path}")
-        with open(file_path, "r", encoding="utf-8") as f:
-            # Read the file in chunks to handle very large files
-            buffer = ""
-            while True:
-                chunk = f.read(1024 * 1024) # Read 1MB at a time
-                if not chunk:
-                    if buffer:
-                        yield buffer
-                    break
-                
-                buffer += chunk
-                while split_on in buffer:
-                    line, _, buffer = buffer.partition(split_on)
-                    if line.strip(): # Avoid empty lines
-                        yield line
-
-
-def merge_tokenizer_and_push_to_hub(hf_key):
+def merge_tokenizer_and_push_to_hub(hf_token):
     # Original tokenizer
     base_tokenizer = AutoTokenizer.from_pretrained(
         "Qwen/Qwen3-8B", trust_remote_code=True, use_fast=True
     )
 
-    # List of files to process
-    corpus_files = [
-        "./data/NCI_ga.txt",
-        "./data/dail.txt",
-        "./wikipedia_sample.txt",
-        "./data/DCU_SEP.txt", 
-        "./data/UCC_culturax.txt"
-    ]
+    # Corpus processing
+    corpus_path = "./data/NCI_ga.txt"
+    with open(corpus_path, "r", encoding="utf-8") as f:
+        corpus_text = f.read()
     
-    # Create the memory-efficient iterator
-    corpus_iter = get_corpus_iterator(corpus_files, split_on="\n")
 
-    print("\n🚀 Starting tokenizer training from iterator...")
-    # Step 1: Train the new tokenizer from the iterator
-    # This will now process the files chunk by chunk
+    corpus_iter = corpus_text.split(". ")
+    print("NCI |||||||||||||||||||||||||||||||||||||")
+    
+    print(corpus_iter[-5:])
+    with open("./data/UCC_culturax.txt", "r", encoding="utf-8") as f:
+        corpus_text = f.read()
+    
+    
+    #corpus_iter += corpus_text.split(". ")
+    print("cultura |||||||||||||||||||||||||||||||||||||")
+    print(corpus_iter[-5:])  # Print last 5 sentences for debugging
+    
+    corpus_path = "./data/dail.txt"
+    with open(corpus_path, "r", encoding="utf-8") as f:
+        corpus_text = f.read()
+    
+    corpus_iter += corpus_text.split("<|endoftext|>")
+    print("dail |||||||||||||||||||||||||||||||||||||")
+    print(corpus_iter[-5:])
+
+    with open("./wikipedia_sample.txt", "r", encoding="utf-8") as f:
+        corpus_text = f.read()
+
+    corpus_iter += corpus_text.split("\n")
+    print("wikipedia |||||||||||||||||||||||||||||||||||||")
+    print(corpus_iter[-5:])  # Print last 5 sentences for debugging
+    
+
+    with open("./data/DCU_SEP.txt", "r", encoding="utf-8") as f:
+        corpus_text += f.read()
+
+    corpus_iter += corpus_text.split("<|endoftext|>")
+    print("DCU |||||||||||||||||||||||||||||||||||||")
+    print(corpus_iter[-5:])
+
+
+    # Step 1: Temporary tokenizer for identifying tokens
     temp_tokenizer = base_tokenizer.train_new_from_iterator(
-        corpus_iter, vocab_size=25_000
+        corpus_iter, vocab_size=30_000
     )
-    print("✅ Tokenizer training complete.")
 
     # Step 2: Identify new tokens so as not to mess up the original KV with duplicates.
-    print("🔍 Identifying new tokens...")
     temp_vocab = set(temp_tokenizer.get_vocab().keys())
     base_vocab = set(base_tokenizer.get_vocab().keys())
     new_tokens = list(temp_vocab - base_vocab)
+
+
     
-    print(f'Found {len(new_tokens)} new tokens.')
+    print(f'new tokens: {len(new_tokens)}')
     sample_tokens = [token.replace("Ġ", " ") for token in new_tokens[:25]]
-    print(f'Sample of new tokens: {sample_tokens}')
-    
-    print("➕ Adding new tokens to base tokenizer...")
+    print(f'sample of new tokens: {sample_tokens}')
     base_tokenizer.add_tokens(new_tokens)
 
     # Save tokenizer
-    print("💾 Saving tokenizer locally...")
-    output_dir = "./qwen_en_ga_from_scratch2"
-    base_tokenizer.save_pretrained(output_dir)
-    
-    print(f"🚀 Pushing tokenizer to hub: jmcinern/{os.path.basename(output_dir)}")
-    base_tokenizer.push_to_hub(f"jmcinern/Qwen_Tokenizer_Ga_En_Big", token=hf_key)
-    
-    return output_dir
-
+    #temp_tokenizer.save_pretrained("./qwen_en_ga_from_scratch2")
+    temp_tokenizer.push_to_hub("jmcinern/hub_push_test", token=hf_token)
 
 # main
 if __name__ == "__main__":
-    hf_key = os.getenv("HF_KEY")
-    # Create the tokenizer
-    local_tokenizer_path = merge_tokenizer_and_push_to_hub(hf_key)
-
-    # ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+    # ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\
     # Testing
-    print("\n\n--- Running Tests ---")
+    hf_tkn = os.getenv("HF_KEY")
+    merge_tokenizer_and_push_to_hub(hf_tkn)
     sample_text = "Chuaigh mé go dtí an siopa agus cheannaigh mé bainne, bhí sé go háilinn. What about you? Did you buy anything from the shop? Lascaine a bhí ann, everything was half price."
-    
-    # Load the tokenizer you just created locally
-    tkn_extended = AutoTokenizer.from_pretrained(local_tokenizer_path, trust_remote_code=True)
+    tkn_extended = AutoTokenizer.from_pretrained("jmcinern/qwen_en_ga_from_scratch2", trust_remote_code=True)
+
     tkn_old_model = AutoTokenizer.from_pretrained("Qwen/Qwen3-8B", trust_remote_code=True)
 
-    # Use convert_ids_to_tokens instead of the deprecated .tokens()
-    tkns_old_ids = tkn_old_model.encode(sample_text)
-    tkns_extended_ids = tkn_extended.encode(sample_text)
+    tokenized_sample_old = tkn_old_model(sample_text)
+    tokenized_sample_extended = tkn_extended(sample_text)
 
-    tkns_old_lst = tkn_old_model.convert_ids_to_tokens(tkns_old_ids)
-    tkns_extended_lst = tkn_extended.convert_ids_to_tokens(tkns_extended_ids)
+    # Replace Ġ with spaces for readability
+    tkns_old_lst = [token.replace("Ġ", " ") for token in tokenized_sample_old.tokens()]
+    tkns_extended_lst = [token.replace("Ġ", " ") for token in tokenized_sample_extended.tokens()]
 
-    print(f'Tokens before extending: {len(tkns_old_lst)}, Tokens after extending: {len(tkns_extended_lst)}')
+    print(f'before extending: {len(tkns_old_lst)}, after extending: {len(tkns_extended_lst)}')
 
+    en_test = "this is an english language test, let's see how it works with the extended tokenizer."
+    print(f'base: {tkn_old_model(sample_text).tokens()}')
+    print(f'extended: {tkn_extended(sample_text).tokens()}')
+
+
+    # Decode tokens for Qwen readability (just for testoing purposes)
     def decode_qwen_tokenizer_tokens(tokens_lst):
-        # This function seems fine for debugging display
-        irish_patches = {'ÃŃ': 'í', 'Ã³': 'ó', 'Ã¡': 'á', 'Ã©': 'é', 'Ãº': 'ú', 'Ã"': 'Ó', 'Ã': 'Á', 'Ã‰': 'É', 'Ãš': 'Ú', 'Ã': 'Í'}
+        # Monkey patch fixes for specific Irish characters
+        irish_patches = {
+            'ÃŃ': 'í',     # ← The fix for your issue!
+            'Ã³': 'ó', 'Ã¡': 'á', 'Ã©': 'é', 'Ãº': 'ú',
+            'Ã"': 'Ó', 'Ã': 'Á', 'Ã‰': 'É', 'Ãš': 'Ú', 'Ã': 'Í'
+        }
+        
         decoded_tkns = []
         for tkn in tokens_lst:
+            # Apply monkey patches first
             for corrupted, correct in irish_patches.items():
                 tkn = tkn.replace(corrupted, correct)
+            
+            # Then try the general latin-1 fix
             try:
                 tkn = tkn.encode('latin-1').decode('utf-8')
             except (UnicodeDecodeError, UnicodeEncodeError):
-                pass
-            decoded_tkns.append(tkn.replace("Ġ", " "))
+                pass  # Keep token as-is if decode fails
+                
+            decoded_tkns.append(tkn)
         return decoded_tkns
 
-    print("\n--- IRISH/ENGLISH TEST ---")
-    print("BEFORE TRAINING:")
+
+    print("TESING ON IRISH")
+    print("BEFORE TRAINING")
     print(" | ".join(decode_qwen_tokenizer_tokens(tkns_old_lst)))
-    print("\nAFTER TRAINING:")
+    print("AFTER TRAINING")
     print(" | ".join(decode_qwen_tokenizer_tokens(tkns_extended_lst)))
-    print(f'\nImprovement: From {len(tkns_old_lst)} tokens down to {len(tkns_extended_lst)} tokens.')
+    print (f'\n\n{len(tkns_old_lst)} tokens before extending, {len(tkns_extended_lst)} tokens after extending.\n\n')
