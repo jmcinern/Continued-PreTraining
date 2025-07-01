@@ -1,0 +1,6 @@
+# filepath: c:\Users\josep\VS-code-projects\CPT-Dáil\.gitattributes
+# Set default behavior for all text files
+* text=auto
+
+# Enforce Unix (LF) line endings for all shell scripts
+*.sh text eol=lf
