@@ -24,4 +24,4 @@ cd $SLURM_SUBMIT_DIR                     # ensure we’re in the project dir
 #accelerate launch \
   #--num_processes 2 \
  # --mixed_precision no \
-deepspeed --num_gpus=2 wandb_tuto.py #mini_CPT.py
+deepspeed --num_gpus=2 mini_CPT.py
