@@ -29,7 +29,7 @@ wandb.login(key=wandb_api_key)
 import wandb
 
 
-LR = 1e4
+LR = 1e-4
 config = {
     "model_size": f"{model_size}B",
     "epochs": 2,
