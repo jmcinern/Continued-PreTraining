@@ -24,4 +24,4 @@ echo "Changing to submission directory: $SLURM_SUBMIT_DIR"
 cd $SLURM_SUBMIT_DIR
 
 export HF_KEY=""
-python=qwen_tokenizer.py
+python qwen_tokenizer.py
