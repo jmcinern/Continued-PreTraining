@@ -16,7 +16,6 @@
     "reduce_bucket_size": 200000000,
     "overlap_comm": true
   },
-  "fp16": {
-    "enabled": false
-  }
+  "fp16": { "enabled": true }
+
 }

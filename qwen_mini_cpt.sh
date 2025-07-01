@@ -27,6 +27,6 @@ cd $SLURM_SUBMIT_DIR                     # ensure we’re in the project dir
 #srun python mini_CPT.py
 accelerate launch \
 --num_processes 2 \
---mixed_precision no \
+--mixed_precision fp16 \
 mini_CPT.py
   #k2-gpu-v100, k2-gpu-interactive

@@ -13,11 +13,19 @@ import wandb
 import random
 
 print("Running the script")
+
  
 model_size = "0.6"
 model_test_name = "1607_Subset_Test_CKPT_TEST_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
+
+model = AutoModelForCausalLM.from_pretrained(
+    model_name,
+    cache_dir=cache_path,
+    trust_remote_code=True, 
+    torch_dtype=torch.float16
+)
 
 tokenizer = AutoTokenizer.from_pretrained(
     "jmcinern/qwen_tokenizer_ga",
@@ -166,7 +174,8 @@ final_dataset = create_dataset_from_chunks(combined_chunks)
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     cache_dir=cache_path,
-    trust_remote_code=True, #  custom qwen3 code for loading
+    trust_remote_code=True, 
+    torch_dtype=torch.float16
 )
 
 
@@ -192,7 +201,7 @@ training_args = TrainingArguments(
     eval_steps=1,
     save_total_limit=2,
     prediction_loss_only=True,
-    fp16=False,
+    fp16=True,
     report_to="wandb",  # enable wandb/hub
     deepspeed="./ds_config.json", # deepspeed config
     gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
