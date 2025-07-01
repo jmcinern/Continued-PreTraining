@@ -28,9 +28,12 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 
 tokenizer = AutoTokenizer.from_pretrained(
-    model_name,
+    "jmcinern/qwen_tkn_ga_en_big",
     trust_remote_code=True  
 )
+
+model.resize_token_embeddings(len(tokenizer))
+
 
 wandb_api_key = os.getenv("WANDB_API_KEY")
 wandb.login(key=wandb_api_key)
