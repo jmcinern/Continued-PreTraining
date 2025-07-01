@@ -15,7 +15,7 @@ import random
 print("Running the script")
  
 model_size = "0.6"
-model_test_name = "1327_Subset_Test_CKPT_TEST_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "1607_Subset_Test_CKPT_TEST_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
 
