@@ -2,7 +2,7 @@
 #SBATCH --job-name=TEST_CPT_JM
 #SBATCH --output=./out/test_cpt_%j.out
 #SBATCH --error=./err/test_cpt_%j.err
-#SBATCH --time=00:10:00
+#SBATCH --time=00:03:00
 #SBATCH --partition=k2-gpu-v100  
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks=1

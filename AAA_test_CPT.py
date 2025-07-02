@@ -32,6 +32,10 @@ tokenizer = AutoTokenizer.from_pretrained(
     trust_remote_code=True  
 )
 
+print(f"Tokenizer vocab size: {len(tokenizer)}")
+print(f"Base model embedding size: {base_model.get_input_embeddings().num_embeddings}")
+print(f"Trained model embedding size: {trained_model.get_input_embeddings().num_embeddings}")
+
 def generate_text(model, tokenizer, prompt):
     inputs = tokenizer(prompt, return_tensors="pt")
     with torch.no_grad():
