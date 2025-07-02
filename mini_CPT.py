@@ -28,7 +28,8 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 
 tokenizer = AutoTokenizer.from_pretrained(
-    "jmcinern/qwen_tkn_ga_en_big_50K",
+    model_name,
+    cache_dir=cache_path,
     trust_remote_code=True  
 )
 
