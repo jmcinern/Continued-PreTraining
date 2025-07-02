@@ -15,7 +15,7 @@ base_model = AutoModelForCausalLM.from_pretrained(
 )
 
 # MINE
-trained_model_path = "./checkpoints/checkpoint-612"
+trained_model_path = "./checkpoints/checkpoint-611"
 trained_model = AutoModelForCausalLM.from_pretrained(
     trained_model_path,
     torch_dtype=torch.float16
