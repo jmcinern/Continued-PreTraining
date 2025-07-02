@@ -19,7 +19,8 @@ trained_model_path = "./checkpoints/checkpoint-611"
 trained_model = AutoModelForCausalLM.from_pretrained(
     trained_model_path,
     torch_dtype=torch.float16,
-    trust_remote_code=True
+    trust_remote_code=True,
+    local_files_only=True
     )
 
 prompt_ga = "Is mise Seosamh agus"
