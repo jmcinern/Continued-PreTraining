@@ -28,9 +28,13 @@ prompt_en = "My name is Joseph, I am a farmer, so"
 
 
 tokenizer = AutoTokenizer.from_pretrained(
-    "jmcinern/qwen_tkn_ga_en_big_50K",
+    #"jmcinern/qwen_tkn_ga_en_big_50K",
+    "Qwen/Qwen3-0.6B",
     trust_remote_code=True  
 )
+
+'''
+'''
 
 print(f"Tokenizer vocab size: {len(tokenizer)}")
 print(f"Base model embedding size: {base_model.get_input_embeddings().num_embeddings}")
