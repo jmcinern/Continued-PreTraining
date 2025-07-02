@@ -2,7 +2,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 # comparing text generation in en and ga between base qwen and trained qwen
 # base model
-model_size = 0.6
+model_size = "0.6"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
 
