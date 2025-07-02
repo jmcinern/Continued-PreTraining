@@ -16,7 +16,7 @@ print("Running the script")
 
  
 model_size = "0.6"
-model_test_name = "1607_Subset_Test_CKPT_TEST_Lab_PC_Train-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "0921_FORCE_LOG_DS-"+model_size+"B-CPT_ga_wandb_tests"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
 
@@ -28,7 +28,7 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 
 tokenizer = AutoTokenizer.from_pretrained(
-    "jmcinern/qwen_tkn_ga_en_big",
+    "jmcinern/qwen_tkn_ga_en_big_50K",
     trust_remote_code=True  
 )
 
@@ -44,7 +44,7 @@ LR = 1e-4
 config = {
     "model_size": f"{model_size}B",
     "epochs": 2,
-    "learning_rate": LR,  # or whatever you're using
+    "learning_rate": LR,  
 }
 wandb.init(
     project="train-CPT",
@@ -205,7 +205,7 @@ training_args = TrainingArguments(
     save_total_limit=2,
     prediction_loss_only=True,
     fp16=True,
-    report_to="wandb",  # enable wandb/hub
+    #report_to="wandb",  # enable wandb/hub
     deepspeed="./ds_config.json", # deepspeed config
     gradient_checkpointing=True, # trick to save subsection of forward pass, prevents caching if True.
 )
@@ -221,6 +221,12 @@ def log_test_metrics_to_wandb(dataset, trainer):
             "final_test_perplexity": test_metrics.get("eval_perplexity", math.exp(test_metrics.get("eval_loss", 0))),
         })
 
+class ForceWandbLogging(TrainerCallback):
+    def on_log(self, args, state, control, model=None, logs=None, **kwargs):
+        if logs is not None:
+            print(f"FORCING WANDB LOG: {logs}")  # Debug print
+            # Force log everything to wandb
+            wandb.log(logs, step=state.global_step)# set up training arguments
 
 # pick up where bitext left off with mixed monolingual en and ga data. 
 trainer = Trainer(
@@ -229,7 +235,7 @@ args=training_args,
 train_dataset=final_dataset['train'],
 eval_dataset=final_dataset['validation'],
 data_collator=data_collator,
-#callbacks=[StopAfterFirstCheckpointCallback()] # safely stop training after first checkpoint to simulate resuming from checkpoint (for testing)
+callbacks=[ForceWandbLogging()] 
 )
 
 
@@ -264,11 +270,6 @@ class StopAfterFirstCheckpointCallback(TrainerCallback):
 '''''''''
 
 # Explicitly log to WandB as report_to as trainer arg not working as expected (no train/val logs)
-'''
-class ForceWandbLogging(TrainerCallback):
-    def on_log(self, args, state, control, model=None, logs=None, **kwargs):
-        if logs is not None:
-            print(f"FORCING WANDB LOG: {logs}")  # Debug print
-            # Force log everything to wandb
-            wandb.log(logs, step=state.global_step)# set up training arguments
-'''
+
+
+
