@@ -23,8 +23,8 @@ trained_model = AutoModelForCausalLM.from_pretrained(
     local_files_only=True
     )
 
-prompt_ga = "Is mise Seosamh agus"
-prompt_en = "My name is Joseph and"
+prompt_ga = "Is mise Seosamh, is feirmeoir mé, mar sin"
+prompt_en = "My name is Joseph, I am a farmer, so"
 
 
 tokenizer = AutoTokenizer.from_pretrained(
@@ -40,7 +40,9 @@ def generate_text(model, tokenizer, prompt):
             max_length=200,
             do_sample=True,
             top_p=0.9,
-            temperature=0.8
+            temperature=0.8,
+            repetition_penalty=1.2,
+            top_k=50   
         )
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
