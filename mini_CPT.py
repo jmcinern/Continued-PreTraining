@@ -16,7 +16,7 @@ print("Running the script")
 
  
 model_size = "0.6"
-model_test_name = "1023_FULL_DATASET-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "1156_FULL_DATASET_8_CPU-"+model_size+"B-CPT_ga_wandb_tests"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
 
@@ -71,7 +71,7 @@ def file_to_chunks(file_path, chunk_size=1000):
     # 1. read file
     with open(file_path, "r", encoding="utf-8") as f:
         file_text = f.read()
-        file_words = file_text.split()[:1_000_000]
+        file_words = file_text.split()#[:1_000_000]
         
     # 2. chunk
     chunks = [" ".join(file_words[i:i+chunk_size])
@@ -96,12 +96,12 @@ def file_to_chunks(file_path, chunk_size=1000):
         return tokenizer(raw_chunk['text'])
     
     # c) tokenize dataset 
-    dataset_tokenized = dataset.map(tokenize_function, batched=True, remove_columns=["text"], num_proc=4)
+    dataset_tokenized = dataset.map(tokenize_function, batched=True, remove_columns=["text"], num_proc=8)
 
     # tokenized -> model input size blocks
     block_size = 2048 
 
-    # turns batch into chunks of block_size
+    # turns batch into chunks of block_sizea
     def group_texts(examples):
         # convert list of lists into a single list
         concatenated = sum(examples["input_ids"], [])
@@ -118,7 +118,7 @@ def file_to_chunks(file_path, chunk_size=1000):
                                                         batched=True, 
                                                         # attn padding not important for CPT
                                                         remove_columns=["attention_mask"],
-                                                        num_proc=4
+                                                        num_proc=8
                                                         )
     return dataset_chunks
     
@@ -185,6 +185,7 @@ def get_or_prepare_dataset(cache_path, chunk_size=10_000):
 
         final_dataset = create_dataset_from_chunks(combined_chunks)
         final_dataset.save_to_disk(cache_path)
+        print('Dataset saved')
 
         return final_dataset
 
