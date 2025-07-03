@@ -16,7 +16,7 @@ print("Running the script")
 
  
 model_size = "0.6"
-model_test_name = "0921_FORCE_LOG_DS-"+model_size+"B-CPT_ga_wandb_tests"
+model_test_name = "1023_FULL_DATASET-"+model_size+"B-CPT_ga_wandb_tests"
 cache_path = "./cache/qwen3-"+model_size+"B"
 model_name = "Qwen/Qwen3-"+model_size+"B"
 
