@@ -3,7 +3,7 @@
 # librsaries:
 from transformers import DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, TrainerCallback, TrainerControl
 from transformers.trainer_utils import get_last_checkpoint
-from datasets import Dataset, DatasetDict #concatenate_datasets
+from datasets import Dataset, DatasetDict, load_from_disk #concatenate_datasets
 #import torch
 from sklearn.model_selection import train_test_split
 import os
@@ -61,6 +61,7 @@ if torch.cuda.is_available():
 else:
     print("CUDA is not available.")
 
+
 # 1. read file
 # 2. chunk
 # 3. split
@@ -70,7 +71,7 @@ def file_to_chunks(file_path, chunk_size=1000):
     # 1. read file
     with open(file_path, "r", encoding="utf-8") as f:
         file_text = f.read()
-        file_words = file_text.split()#[:1_000_000]
+        file_words = file_text.split()[:1_000_000]
         
     # 2. chunk
     chunks = [" ".join(file_words[i:i+chunk_size])
@@ -95,7 +96,7 @@ def file_to_chunks(file_path, chunk_size=1000):
         return tokenizer(raw_chunk['text'])
     
     # c) tokenize dataset 
-    dataset_tokenized = dataset.map(tokenize_function, batched=True, remove_columns=["text"])
+    dataset_tokenized = dataset.map(tokenize_function, batched=True, remove_columns=["text"], num_proc=4)
 
     # tokenized -> model input size blocks
     block_size = 2048 
@@ -116,10 +117,11 @@ def file_to_chunks(file_path, chunk_size=1000):
     dataset_chunks = dataset_tokenized.map(group_texts, 
                                                         batched=True, 
                                                         # attn padding not important for CPT
-                                                        remove_columns=["attention_mask"] 
+                                                        remove_columns=["attention_mask"],
+                                                        num_proc=4
                                                         )
     return dataset_chunks
-
+    
 def shuffle(chunks_list):
     """Shuffle list of chunks in place and return"""
     shuffled = chunks_list.copy()  # Don't modify original
@@ -140,40 +142,55 @@ def create_dataset_from_chunks(chunks_list, test_size=0.06, random_state=42):
     })
     
     return dataset
+    
+def get_or_prepare_dataset(cache_path, chunk_size=10_000):
+     # Check if already process and load from disk if so
+    if os.path.exists(cache_path):
+        print("Loading data set from disk")
+        return load_from_disk(cache_path)
+    # otherwise prepare dataset, tokenization, chunking etc...
+    else:
+        print("Preparing and processing dataset")
+        # data dir with english and irish data
+        data_dir = "./data/"
+        # get file names in ./data/ from os
+        data_file_paths = [f for f in os.listdir(data_dir)]
 
-# data dir with english and irish data
-data_dir = "./data/"
-# get file names in ./data/ from os
-data_file_paths = [f for f in os.listdir(data_dir)]
+        # get bitext for initial alignment (parallel corpus)
+        bitext_file = [f for f in data_file_paths if 'bitext' in f.lower()]
+        bitext_path = os.path.join(data_dir, bitext_file[0])
+        bitext_dataset = file_to_chunks(bitext_path, chunk_size=chunk_size)
 
-# get bitext for initial alignment (parallel corpus)
-bitext_file = [f for f in data_file_paths if 'bitext' in f.lower()]
-bitext_path = os.path.join(data_dir, bitext_file[0])
-bitext_dataset = file_to_chunks(bitext_path, chunk_size=10000)
+        bitext_chunks = []
+        bitext_chunks.extend(bitext_dataset['train']['input_ids'])
+        bitext_chunks.extend(bitext_dataset['validation']['input_ids'])
+        bitext_chunks.extend(bitext_dataset['test']['input_ids'])
 
-bitext_chunks = []
-bitext_chunks.extend(bitext_dataset['train']['input_ids'])
-bitext_chunks.extend(bitext_dataset['validation']['input_ids'])
-bitext_chunks.extend(bitext_dataset['test']['input_ids'])
+        # other files
+        other_files = [f for f in data_file_paths if 'bitext' not in f.lower()]
+        all_chunks = []
+        for f_name in other_files:
+            f_path = os.path.join(data_dir, f_name)
+            file_chunks = file_to_chunks(f_path, chunk_size=chunk_size)
+            # get all data
+            all_chunks.extend(file_chunks['train']['input_ids'])
+            all_chunks.extend(file_chunks['validation']['input_ids'])
+            all_chunks.extend(file_chunks['test']['input_ids'])
 
-# other files
-other_files = [f for f in data_file_paths if 'bitext' not in f.lower()]
-all_chunks = []
-for f_name in other_files:
-    f_path = os.path.join(data_dir, f_name)
-    file_chunks = file_to_chunks(f_path, chunk_size=10000)
-    # get all data
-    all_chunks.extend(file_chunks['train']['input_ids'])
-    all_chunks.extend(file_chunks['validation']['input_ids'])
-    all_chunks.extend(file_chunks['test']['input_ids'])
+        # mix files to prevent sequential training
+        shuffled_mixed_chunks = shuffle(all_chunks)
 
-# mix files to prevent sequential training
-shuffled_mixed_chunks = shuffle(all_chunks)
+        # propend bitext data to the mixed dataset
+        combined_chunks = bitext_chunks + shuffled_mixed_chunks
 
-# propend bitext data to the mixed dataset
-combined_chunks = bitext_chunks + shuffled_mixed_chunks
+        final_dataset = create_dataset_from_chunks(combined_chunks)
+        final_dataset.save_to_disk(cache_path)
 
-final_dataset = create_dataset_from_chunks(combined_chunks)
+        return final_dataset
+
+
+dataset_path = "./cache/datset_processed"
+final_dataset = get_or_prepare_dataset(dataset_path, chunk_size=10_000)
 
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
