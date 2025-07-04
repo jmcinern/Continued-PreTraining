@@ -18,7 +18,6 @@ base_model = AutoModelForCausalLM.from_pretrained(
 trained_model_path = "./checkpoints/checkpoint-139"
 trained_model = AutoModelForCausalLM.from_pretrained(
     trained_model_path,
-    torch_dtype=torch.float16,
     trust_remote_code=True,
     local_files_only=True
     )
@@ -28,12 +27,9 @@ prompt_en = "My name is Joseph, I am a farmer, so"
 
 
 tokenizer = AutoTokenizer.from_pretrained(
-    "Qwen/Qwen3-0.6B",
+    f"Qwen/Qwen3-{model_size}B",
     trust_remote_code=True  
 )
-
-'''
-'''
 
 def generate_text(model, tokenizer, prompt):
     inputs = tokenizer(prompt, return_tensors="pt")
@@ -51,19 +47,25 @@ def generate_text(model, tokenizer, prompt):
 
 
 
-generated_text = generate_text(base_model, tokenizer, prompt_en)
 print("Base Model Generated Text EN:")
+generated_text = generate_text(base_model, tokenizer, prompt_en)
 print(generated_text)
+
 print("\n" + "="*50 + "\n")
-generated_text_trained = generate_text(trained_model, tokenizer, prompt_en)
+
 print("Trained Model Generated Text EN:")
+generated_text_trained = generate_text(trained_model, tokenizer, prompt_en)
 print(generated_text_trained)
+
 print("\n" + "="*50 + "\n")
+
+print("Base Model Generated Text GA:")    
 generated_text_ga = generate_text(base_model, tokenizer, prompt_ga)
-print("Base Model Generated Text in Irish:")    
 print(generated_text_ga)
+
 print("\n" + "="*50 + "\n")
+
+print("Trained Model Generated Text GA:")    
 generated_text_trained_ga = generate_text(trained_model, tokenizer, prompt_ga)
-print("Trained Model Generated Text in Irish:")    
 print(generated_text_trained_ga)
 
