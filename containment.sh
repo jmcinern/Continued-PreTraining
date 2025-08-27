@@ -2,11 +2,11 @@
 #SBATCH --job-name=containment
 #SBATCH --output=./out/containment.%j.out
 #SBATCH --error=./err/containment.%j.err
-#SBATCH --time=00:01:00
+#SBATCH --time=00:10:00
 #SBATCH --partition=k2-lowpri  # Changed from k2-gpu-v100
-#SBATCH --ntasks=128
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=64  # Reduced from 256G
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=128
+#SBATCH --mem=32G  # Reduced from 256G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=josephmcinerney7575@gmail.com
 
