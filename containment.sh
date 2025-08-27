@@ -2,7 +2,7 @@
 #SBATCH --job-name=containment
 #SBATCH --output=./out/containment.%j.out
 #SBATCH --error=./err/containment.%j.err
-#SBATCH --time=00:10:00
+#SBATCH --time=00:01:00
 #SBATCH --partition=k2-lowpri  # Changed from k2-gpu-v100
 #SBATCH --ntasks=128
 #SBATCH --cpus-per-task=1
